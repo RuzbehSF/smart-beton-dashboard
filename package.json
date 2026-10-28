@@ -1,0 +1,29 @@
+{
+  "name": "smart-beton-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "tauri": "tauri",
+    "test": "node --test tests/domain.test.ts && vitest run tests/app.test.tsx tests/vault.test.tsx tests/markdown.test.tsx"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-dialog": "^2.8.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "jsdom": "^29.1.1",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vitest": "^5.0.5"
+  }
+}
