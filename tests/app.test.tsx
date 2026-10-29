@@ -101,7 +101,7 @@ test('saves note metadata and restores a trashed note', async () => {
   fireEvent.change(title,{target:{value:'Idea'}});
   fireEvent.change(await screen.findByRole('option',{name:'Ideas'}).then(o=>o.closest('select')!),{target:{value:'Ideas'}});
   fireEvent.change(screen.getByLabelText('Tags'),{target:{value:'design, ui'}});
-  fireEvent.change(screen.getByLabelText('Project'),{target:{value:'1'}});
+  fireEvent.change(screen.getByRole('combobox',{name:'Project'}),{target:{value:'1'}});
   fireEvent.keyDown(title,{key:'s',ctrlKey:true});
   await waitFor(()=>expect(invoke).toHaveBeenCalledWith('save_item',expect.objectContaining({id:null,kind:'note',title:'Idea',category:'Ideas',tags:'design, ui',projectId:1})));
 });
@@ -442,4 +442,31 @@ test('the interface shrinks to fit a small window and can be set to actual size'
   await waitFor(() => expect(document.documentElement.style.getPropertyValue('--ui-zoom')).toBe('1'));
   expect(document.documentElement.hasAttribute('data-narrow')).toBe(true);
   expect(localStorage.getItem('scale')).toBe('full');
+});
+
+test('formatting buttons edit the note text and the empty editor offers templates', async () => {
+  invoke.mockImplementation(async (name: string) => name === 'editor_path' ? null : name === 'save_item' ? 1 : []);
+  render(<App/>);
+  go(/notes/i);
+  fireEvent.click(await screen.findByRole('button', {name: /^Blank note/}));
+  const area = await screen.findByLabelText('Note text (Markdown)') as HTMLTextAreaElement;
+  fireEvent.change(area, {target: {value: 'hello world'}});
+  area.setSelectionRange(0, 5);
+  fireEvent.click(screen.getByRole('button', {name: 'Bold'}));
+  expect(area.value).toBe('**hello** world');
+  area.setSelectionRange(0, area.value.length);
+  fireEvent.click(screen.getByRole('button', {name: 'Checklist'}));
+  expect(area.value).toBe('- [ ] **hello** world');
+});
+test('project blocks have a red delete button and a collapsed folder summary', async () => {
+  const project = {id: 1, name: 'Panel', path: 'A:\\SmartBeton\\panel', status: 'active', git_state: 'none', ai_harness: 'claude'};
+  invoke.mockImplementation(async (command: string) => command === 'list_projects' ? [project] : command === 'list_project_roots' ? [{id: 1, path: 'A:\\SmartBeton', label: '', exclusions: '', project_count: 1}] : command === 'editor_path' || command === 'continue_info' ? null : []);
+  render(<App/>);
+  go(/projects/i);
+  const del = await screen.findByRole('button', {name: 'Delete Panel'});
+  expect(del.className).toContain('danger');
+  expect(await screen.findByText(/1 project folder/)).toBeTruthy();
+  expect(screen.queryByRole('button', {name: /add folder/i})).toBeNull();
+  fireEvent.click(screen.getByRole('button', {name: 'Manage folders'}));
+  expect(screen.getByRole('button', {name: /add folder/i})).toBeTruthy();
 });

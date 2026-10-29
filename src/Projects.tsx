@@ -19,6 +19,7 @@ const parentName = (path:string) => displayPath(path).split(/[\\/]/).filter(Bool
 const harnessName = (id?:string) => HARNESSES.find(([key]) => key === id)?.[1] ?? 'Claude Code';
 
 export function Projects(p:Props) {
+  const [foldersOpen, setFoldersOpen] = useState(false);
   const [detail, setDetail] = useState<number|null>(p.initialDetail), [query, setQuery] = useState(''), [sort, setSort] = useState<'commit'|'recent'|'name'|'created'>('commit'), [scope, setScope] = useState<'active'|'favorites'|'archived'>('active'), [status, setStatus] = useState('all'), [view, setView] = useState<'grid'|'list'>('grid');
   const [adding, setAdding] = useState(false), [name, setName] = useState(''), [path, setPath] = useState(''), [description, setDescription] = useState('');
   const [roots, setRoots] = useState<Root[]>([]), [ignored, setIgnored] = useState(0), [scan, setScan] = useState<Scan|null>(null), [selected, setSelected] = useState<string[]>([]), [nested, setNested] = useState(false), [scanning, setScanning] = useState(false), [editRoot, setEditRoot] = useState<Root|null>(null), [message, setMessage] = useState(''), [gitBusy, setGitBusy] = useState(false);
@@ -101,46 +102,59 @@ The folder and its files are NOT touched. Its notes and tasks stay but lose the 
 
   const list = selectProjects(p.projects, {query, scope, status, sort});
   const sameName = (x:ProjectRecord) => p.projects.filter(y => y.name === x.name).length > 1;
+  const unknown = scan?.candidates.filter(c => !c.known) ?? [];
+  const showFolders = foldersOpen || !roots.length || !!scan;
+  const total = roots.reduce((n, r) => n + r.project_count, 0);
+
   const card = (x:ProjectRecord) => {
     const commit = commitSummary(x), harness = x.ai_harness ?? 'claude';
     return <article className={view === 'grid' ? 'card proj-card' : 'card proj-row'} key={x.id}>
-      <div className="row"><button className="proj-name" onClick={() => setDetail(x.id)}>{x.name}</button>
-        <button className="link tiny star" aria-pressed={!!x.is_favorite} aria-label={x.is_favorite ? `Remove ${x.name} from favorites` : `Add ${x.name} to favorites`} onClick={() => run('set_project_flag', {id: x.id, flag: 'favorite', value: !x.is_favorite})}>{x.is_favorite ? '★' : '☆'}</button></div>
+      <div className="proj-head">
+        <button className="proj-name" title={x.name} onClick={() => setDetail(x.id)}>{x.name}</button>
+        <div className="proj-head-actions">
+          <button className="link tiny star" aria-pressed={!!x.is_favorite} aria-label={x.is_favorite ? `Remove ${x.name} from favorites` : `Add ${x.name} to favorites`} onClick={() => run('set_project_flag', {id: x.id, flag: 'favorite', value: !x.is_favorite})}>{x.is_favorite ? '★' : '☆'}</button>
+          <button className="link danger small" aria-label={`Delete ${x.name}`} onClick={() => deleteProject(x)}>Delete</button>
+        </div>
+      </div>
       <p className="commit-line" title={x.last_commit_subject || undefined}><strong>{commit.text}</strong>{commit.date && <span> · <bdi dir="ltr">{commit.date}</bdi></span>}</p>
       <div className="chips"><span className={`chip status-${x.status ?? 'active'}`}>{STATUS_LABEL[x.status ?? 'active'] ?? x.status}</span>{x.git_branch && <span className="chip" dir="ltr">⎇ {x.git_branch}</span>}{!!x.git_dirty && <span className="chip">{x.git_dirty} uncommitted</span>}{sameName(x) && <span className="chip" dir="ltr" title="Another project has the same name">in {parentName(x.path)}</span>}{x.is_archived && <span className="chip">Archived</span>}{tagList(x.technology_tags).filter(t => t !== 'Git').map(t => <span className="chip" key={t}>{t}</span>)}</div>
       {x.description && <p className="muted clamp">{x.description}</p>}
       <p className="path" dir="ltr" title={displayPath(x.path)}>{displayPath(x.path)}</p>
-      <div className="launch-row">
+      <div className="launch-box">
         <label className="harness">AI tool<select aria-label={`AI tool for ${x.name}`} value={harness} onChange={e => run('set_project_harness', {id: x.id, harness: e.target.value})}>{HARNESSES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
         <button className="launch-btn" title={`Opens ${x.name} in VS Code and in ${harnessName(harness)}`} onClick={() => openWorkspace(x)}>Open in VS Code + {harnessName(harness)}</button>
       </div>
-      <div className="row actions"><button className="link" onClick={() => setDetail(x.id)}>Open project</button>
-        <button className="link" onClick={() => run('open_project_folder', {id: x.id})}>Open folder</button>
-        <button className="link danger" aria-label={`Delete ${x.name}`} onClick={() => deleteProject(x)}>Delete</button></div>
+      <div className="row actions"><button className="link" onClick={() => setDetail(x.id)}>Open project</button><button className="link" onClick={() => run('open_project_folder', {id: x.id})}>Open folder</button></div>
     </article>;
   };
-  const unknown = scan?.candidates.filter(c => !c.known) ?? [];
 
   return <section className="projects-page">
-    <div className="card collection">
-      <div className="row"><h2>Projects</h2><div className="row"><button onClick={() => {p.onError(''); setAdding(true);}}>＋ Add project</button><button className="link" disabled={gitBusy} onClick={() => refreshGit(true)}>{gitBusy ? 'Reading Git…' : 'Refresh Git info'}</button></div></div>
+    <div className="card collection projects-controls">
+      <div className="row"><h2>Projects <span className="count-pill">{p.projects.length}</span></h2>
+        <div className="row"><button className="link" disabled={gitBusy} onClick={() => refreshGit(true)}>{gitBusy ? 'Reading Git…' : 'Refresh Git info'}</button><button onClick={() => {p.onError(''); setAdding(true);}}>＋ Add project</button></div></div>
 
-      <div className="roots-panel">
-        <div className="row"><h3>Project folders</h3><div className="row"><button onClick={addRoot} disabled={scanning}>＋ Add folder</button>{roots.length > 0 && <button className="link" disabled={scanning} onClick={() => scanRoots(null)}>{scanning ? 'Scanning…' : 'Find new projects'}</button>}</div></div>
-        {!roots.length && <p className="muted">Add the folder that holds all your projects (for example A:\SmartBeton). Each project folder becomes one block; the folders inside a project, such as front end and back end, are not listed separately.</p>}
-        {roots.map(root => <div className="item root-item" key={root.id}><div><strong>{root.label || displayPath(root.path)}</strong><p dir="ltr" className="path">{displayPath(root.path)}</p><p className="muted">{root.project_count} project{root.project_count === 1 ? '' : 's'}{root.exclusions ? ` · skipping ${root.exclusions}` : ''}</p></div>
-          <button className="link" disabled={scanning} onClick={() => scanRoots(root.id)}>Rescan</button><button className="link" onClick={() => setEditRoot(root)}>Folder settings</button><button className="link danger" onClick={() => removeRoot(root)}>Remove folder</button></div>)}
-        <label className="inline-check"><input type="checkbox" checked={nested} onChange={e => setNested(e.target.checked)}/>Also list projects inside other projects (for example monorepo packages)</label>
-        {ignored > 0 && <p className="muted">{ignored} deleted project{ignored === 1 ? ' is' : 's are'} hidden from scans. <button className="link" onClick={async () => { if (await run('clear_ignored_projects', {})) { loadRoots(); setMessage('Deleted projects can be found by scans again.'); } }}>Show them again</button></p>}
+      <div className="folders">
+        {!showFolders ? <div className="folders-summary"><span>📁 {roots.length} project folder{roots.length === 1 ? '' : 's'} · {total} project{total === 1 ? '' : 's'}</span>
+          <button className="link" disabled={scanning} onClick={() => scanRoots(null)}>{scanning ? 'Scanning…' : 'Find new projects'}</button><button className="link" onClick={() => setFoldersOpen(true)}>Manage folders</button></div>
+        : <div className="roots-panel">
+          <div className="row"><h3>Project folders</h3><div className="row">{roots.length > 0 && !scan && <button className="link" onClick={() => setFoldersOpen(false)}>Hide</button>}{roots.length > 0 && <button className="link" disabled={scanning} onClick={() => scanRoots(null)}>{scanning ? 'Scanning…' : 'Find new projects'}</button>}<button onClick={addRoot} disabled={scanning}>＋ Add folder</button></div></div>
+          {!roots.length && <p className="muted">Add the folder that holds all your projects (for example A:\SmartBeton). Each project folder becomes one block; the folders inside a project, such as front end and back end, are not listed separately.</p>}
+          {roots.map(root => <div className="root-item" key={root.id}><div><strong>{root.label || displayPath(root.path)}</strong><span dir="ltr" className="path">{displayPath(root.path)}</span><span className="muted">{root.project_count} project{root.project_count === 1 ? '' : 's'}{root.exclusions ? ` · skipping ${root.exclusions}` : ''}</span></div>
+            <div className="row actions"><button className="link" disabled={scanning} onClick={() => scanRoots(root.id)}>Rescan</button><button className="link" onClick={() => setEditRoot(root)}>Settings</button><button className="link danger" onClick={() => removeRoot(root)}>Remove</button></div></div>)}
+          <label className="inline-check"><input type="checkbox" checked={nested} onChange={e => setNested(e.target.checked)}/>Also list projects inside other projects (for example monorepo packages)</label>
+          {ignored > 0 && <p className="muted">{ignored} deleted project{ignored === 1 ? ' is' : 's are'} hidden from scans. <button className="link" onClick={async () => { if (await run('clear_ignored_projects', {})) { loadRoots(); setMessage('Deleted projects can be found by scans again.'); } }}>Show them again</button></p>}
+        </div>}
       </div>
 
       {scan && <div className="scan-panel">
         <p><strong>{unknown.length}</strong> new project{unknown.length === 1 ? '' : 's'} found{scan.candidates.length > unknown.length ? ` (${scan.candidates.length - unknown.length} already added)` : ''}. Review before importing.</p>
-        {scan.candidates.map(c => <label className="item" key={c.path}><input type="checkbox" disabled={c.known} checked={c.known || selected.includes(c.path)} onChange={e => setSelected(e.target.checked ? [...selected, c.path] : selected.filter(x => x !== c.path))}/><span dir="ltr"><strong>{c.name}</strong> <span className="muted">{displayPath(c.path)}{c.has_git ? ' · Git' : ''}{c.known ? ' · already added' : ''}</span></span></label>)}
+        {scan.candidates.map(c => <label className="scan-row" key={c.path}><input type="checkbox" disabled={c.known} checked={c.known || selected.includes(c.path)} onChange={e => setSelected(e.target.checked ? [...selected, c.path] : selected.filter(x => x !== c.path))}/><span dir="ltr"><strong>{c.name}</strong> <span className="muted">{displayPath(c.path)}{c.has_git ? ' · Git' : ''}{c.known ? ' · already added' : ''}</span></span></label>)}
         {scan.warnings.slice(0, 3).map((w, i) => <p className="muted" key={i}>{w}</p>)}
         <div className="row actions"><button disabled={!selected.length} onClick={importSelected}>Import selected</button><button className="link" onClick={() => {setScan(null); setSelected([]);}}>Cancel</button></div></div>}
       {message && <p role="status" className="status-line">{message}</p>}
 
+    </div>
+    <div className="card proj-sticky">
       <div className="proj-toolbar">
         <input className="search" aria-label="Search projects" placeholder="Search name, description, tags or path" value={query} onChange={e => setQuery(e.target.value)}/>
         <div className="seg" role="group" aria-label="Project collection">{([['active', 'Active'], ['favorites', 'Favorites'], ['archived', 'Archived']] as const).map(([id, label]) => <button key={id} className={scope === id ? 'active' : ''} aria-pressed={scope === id} onClick={() => setScope(id)}>{label}</button>)}</div>
@@ -150,7 +164,7 @@ The folder and its files are NOT touched. Its notes and tasks stay but lose the 
       </div>
     </div>
     <div className={view === 'grid' ? 'proj-grid' : 'proj-list'}>{list.map(card)}</div>
-    {!list.length && <div className="card"><p className="muted">{p.projects.length ? 'No projects match these filters.' : 'No projects yet. Add the folder that holds your projects, or add one project by hand.'}</p></div>}
+    {!list.length && <div className="card empty-card"><p className="muted">{p.projects.length ? 'No projects match these filters.' : 'No projects yet. Add the folder that holds your projects, or add one project by hand.'}</p></div>}
 
     {editRoot && <div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="Folder settings" onSubmit={saveRoot} onKeyDown={e => { if (e.key === 'Escape') setEditRoot(null); }}>
       <h2>Folder settings</h2><p dir="ltr" className="path">{displayPath(editRoot.path)}</p>

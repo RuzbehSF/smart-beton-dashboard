@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "tauri": "tauri",
-    "test": "node --test tests/domain.test.ts && vitest run tests/app.test.tsx tests/vault.test.tsx tests/markdown.test.tsx"
+    "test": "node --test tests/domain.test.ts tests/markdownEdit.test.ts && vitest run tests/app.test.tsx tests/vault.test.tsx tests/markdown.test.tsx"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",

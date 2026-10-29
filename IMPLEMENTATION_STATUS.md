@@ -80,6 +80,15 @@ The product is incomplete and is not ready for use with real credentials.
 - **Automatic fit:** the whole interface is scaled to the window (designed for 1600x900 and larger, never above 100%, never below 72%), so a 1080p screen at 125% or 150% Windows scaling (about 1536x864 or 1280x720) still shows every page without scrolling; checked at 1920x1080, 1536x864 and 1280x720. Settings > Appearance > Interface size can switch it to actual size.
 - Not done: yearly schedules; a schedule that runs without your confirmation (by design).
 
+## Layout and notes/projects polish session
+
+- **Scrolling:** only the right-hand content area scrolls (smoothly); the sidebar and header never move or resize. Scroll bars are hidden everywhere and nothing scrolls sideways. The dashboard and the Notes page keep fixed heights with internal panes.
+- **Projects:** fixed the overlapping blocks (rows now size to their content). Roomier blocks with the name, favorite and a small red Delete on top, the last commit line, chips, path, an AI tool picker and one full-width "Open in VS Code + <tool>" button. The filter bar stays pinned while scrolling; the project folders collapse to a one-line summary once you have some; a list layout is available.
+- **Notes:** a tidier sidebar (collections, categories with edit/delete on hover and a + to add, tag and project filters), a prominent New note button with a template picker, richer list entries (category and tag chips, date), template tiles when nothing is open, a formatting toolbar (heading, bold, italic, code, lists, checklist, quote, link, code block, with Ctrl+B and Ctrl+I) and a word count.
+- **Settings:** items now stack title, help text and control cleanly in three columns.
+- **Motion:** small fade/slide-in for cards, list items, chips and messages, focus rings, hover lifts and a saving pulse; all off when reduced motion is on.
+- Verified by measurement at 1920x1080: no sideways overflow on any page, fixed sidebar size, no overlapping project blocks. Not reviewed visually in the desktop window.
+
 ## Checks
 
 Latest verified run (this machine, Windows, account access):
