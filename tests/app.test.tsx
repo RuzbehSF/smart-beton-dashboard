@@ -68,7 +68,7 @@ test('project blocks show the last commit and open VS Code plus the chosen AI to
 test('a server can be linked to several projects', async () => {
   invoke.mockImplementation(async (command: string) => command === 'list_projects' ? [{id: 1, name: 'Alpha', path: 'C:\\a'}, {id: 2, name: 'Beta', path: 'C:\\b'}] : command === 'editor_path' ? null : []);
   render(<App/>);
-  go(/servers & connections/i);
+  go(/Server/i);
   fireEvent.click(screen.getByRole('button', {name: /add/i}));
   fireEvent.change(screen.getByLabelText('Name'), {target: {value: 'Shared box'}});
   fireEvent.change(screen.getByLabelText('Address'), {target: {value: 'host.example'}});
@@ -135,7 +135,7 @@ test('keyboard palette navigates to a section', async () => {
   fireEvent.keyDown(window,{key:'k',ctrlKey:true});
   const dialog=screen.getByRole('dialog',{name:'Search and navigation'});
   fireEvent.change(dialog.querySelector('input')!,{target:{value:'Settings'}});
-  fireEvent.click(screen.getByRole('button',{name:'Settings'}));
+  fireEvent.click(within(dialog).getByRole('button',{name:'Settings'}));
   expect(screen.queryByRole('dialog',{name:'Search and navigation'})).toBeNull();
   expect(screen.getAllByText('Settings').length).toBeGreaterThan(0);
 });
@@ -211,7 +211,7 @@ test('editor selection requires explicit confirmation', async () => {
 test('saves connection metadata without a password field', async () => {
   invoke.mockImplementation(async (command:string)=>command==='editor_path'?null:[]);
   render(<App/>);
-  fireEvent.click(screen.getByRole('button',{name:/servers & connections/i}));
+  fireEvent.click(screen.getByRole('button',{name:/Server/i}));
   fireEvent.click(screen.getByRole('button',{name:/add/i}));
   fireEvent.change(screen.getByLabelText('Name'),{target:{value:'Test server'}});
   fireEvent.change(screen.getByLabelText('Address'),{target:{value:'host.example'}});
@@ -243,7 +243,7 @@ test('opening a web panel requires confirmation', async () => {
   invoke.mockImplementation(async (command:string)=>command==='list_connections'?[{id:4,name:'Panel',kind:'web',address:'https://example.test/',port:null,username:'',project_id:null}]:command==='editor_path'?null:[]);
   const confirm=vi.spyOn(window,'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
   render(<App/>);
-  fireEvent.click(screen.getByRole('button',{name:/servers & connections/i}));
+  fireEvent.click(screen.getByRole('button',{name:/Server/i}));
   fireEvent.click(await screen.findByRole('button',{name:'Open web panel'}));
   expect(invoke).not.toHaveBeenCalledWith('open_web_connection',expect.anything());
   fireEvent.click(screen.getByRole('button',{name:'Open web panel'}));
@@ -253,7 +253,7 @@ test('opening a web panel requires confirmation', async () => {
 test('Remote Desktop requires confirmation and passes only reviewed host and port',async()=>{
   invoke.mockImplementation(async (command:string)=>command==='list_connections'?[{id:2,name:'Synthetic RDP',kind:'rdp',address:'example.test',port:3389,username:'test',project_id:null}]:command==='editor_path'?null:[]);
   const confirm=vi.spyOn(window,'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
-  render(<App/>);fireEvent.click(screen.getByRole('button',{name:/servers & connections/i}));
+  render(<App/>);fireEvent.click(screen.getByRole('button',{name:/Server/i}));
   fireEvent.click(await screen.findByRole('button',{name:'Open Remote Desktop'}));
   expect(invoke).not.toHaveBeenCalledWith('open_rdp_connection',expect.anything());
   fireEvent.click(screen.getByRole('button',{name:'Open Remote Desktop'}));
@@ -332,7 +332,7 @@ test('connections can be filtered by environment and production launches are fla
   invoke.mockImplementation(async(command:string)=>command==='list_connections'?rows:command==='editor_path'?null:[]);
   const confirm=vi.spyOn(window,'confirm').mockReturnValue(false);
   render(<App/>);
-  go(/servers & connections/i);
+  go(/Server/i);
   expect(await screen.findByText('Live box')).toBeTruthy();
   fireEvent.change(screen.getByLabelText('Environment'),{target:{value:'production'}});
   expect(screen.queryByText('Staging box')).toBeNull();
@@ -448,7 +448,7 @@ test('formatting buttons edit the note text and the empty editor offers template
   invoke.mockImplementation(async (name: string) => name === 'editor_path' ? null : name === 'save_item' ? 1 : []);
   render(<App/>);
   go(/notes/i);
-  fireEvent.click(await screen.findByRole('button', {name: /^Blank note/}));
+  fireEvent.click(screen.getAllByRole('button', {name: /new note/i})[0]);
   const area = await screen.findByLabelText('Note text (Markdown)') as HTMLTextAreaElement;
   fireEvent.change(area, {target: {value: 'hello world'}});
   area.setSelectionRange(0, 5);

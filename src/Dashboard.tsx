@@ -35,22 +35,23 @@ export function Dashboard(p:DashboardProps) {
   const done = tasks.filter(x => x.done).length;
   const doneGoals = goals.filter(x => x.done).length;
   const open = tasks.filter(x => !x.done).sort((a, b) => Number(!!b.is_pinned) - Number(!!a.is_pinned));
-  const recent = p.projects.filter(x => x.last_opened_at).slice(0, 3);
+  const recent = p.projects.filter(x => x.last_opened_at).sort((a, b) => (b.last_opened_at ?? '').localeCompare(a.last_opened_at ?? '')).slice(0, 3);
+  const recentNotes = [...notes].sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? '')).slice(0, 3);
   const projectName = (id?:number|null) => p.projects.find(x => x.id === id)?.name;
   async function submitGoal(e:React.FormEvent) { e.preventDefault(); const title = goalTitle.trim(); if (!title) return; await p.onAddGoal(title); setGoalTitle(''); }
   return <div className="bento">
-    <section className="card contrast b-overall"><h2>Overall information</h2>
-      <div className="overall-numbers"><div><span className="big">{done}</span> <small>tasks done for all time</small></div><div><span className="big">{p.projects.length}</span> <small>projects registered</small></div></div>
+    <section className="card b-overall"><div className="dashboard-heading"><div><h2>Overview</h2><p>A snapshot of your workspace</p></div><span className="dashboard-mark" aria-hidden="true">◫</span></div>
+      <div className="overall-numbers"><div><span className="big">{done}</span> <small>Tasks completed</small></div><div><span className="big">{p.projects.length}</span> <small>Projects</small></div></div>
       <div className="metrics"><div><strong>{open.length}</strong>Open</div><div><strong>{done}</strong>Completed</div><div><strong>{notes.length}</strong>Notes</div><div><strong>{servers ?? '—'}</strong>Servers</div></div>
     </section>
     <div className="b-weekly"><WeeklyActivity days={p.activity}/></div>
     <section className="card b-month"><h2>Task progress</h2><Ring percent={taskProgress(tasks)}/><p className="muted center">{tasks.length ? `${done} of ${tasks.length} tasks completed` : 'Completion appears once you add tasks.'}</p></section>
     <section className="card goals b-goals"><div className="row"><h2>Goals</h2><span className="chip" aria-label="Goals completed">{doneGoals}/{goals.length}</span></div>
       <div className="goal-list">{goals.map(x => <div className="goal-row" key={x.id}><label><input type="checkbox" checked={x.done} onChange={() => p.onToggle(x.id)}/><span className={x.done ? 'struck' : ''}>{x.title}</span></label><button className="link" aria-label={`Remove goal ${x.title}`} onClick={() => p.onTrash(x.id)}>✕</button></div>)}
-      {!goals.length && <p className="muted">No goals yet. Add one below.</p>}</div>
+      {!goals.length && <div className="dashboard-placeholder"><span aria-hidden="true">◎</span><div><strong>Set an intention</strong><p>Your goals will appear here.</p></div></div>}</div>
       <form className="goal-form" onSubmit={submitGoal}><input aria-label="New goal" placeholder="Add a goal" value={goalTitle} onChange={e => setGoalTitle(e.target.value)}/><button disabled={!goalTitle.trim()}>Add</button></form>
     </section>
-    <section className="b-tasks"><div className="row"><h2>Tasks in process ({open.length})</h2><button className="link" onClick={() => p.onPage(5)}>Open all tasks ›</button></div>
+    <section className="b-tasks"><div className="row"><h2>Open tasks <span className="dashboard-count">{open.length}</span></h2><button className="link" onClick={() => p.onPage(5)}>View all ›</button></div>
       <div className="task-cards">
         {open.slice(0, 3).map((x, i) => <article className={`task-card tilt-${i % 3}`} key={x.id}>
           <div className="row"><label className="check-circle"><input type="checkbox" aria-label={`Complete ${x.title}`} checked={x.done} onChange={() => p.onToggle(x.id)}/></label>
@@ -60,19 +61,19 @@ export function Dashboard(p:DashboardProps) {
           <p className="muted">{[projectName(x.project_id), x.priority ?? 'normal'].filter(Boolean).join(' · ')}</p>
           <p className={x.due_date && x.due_date < p.today ? 'due overdue' : 'due'}>{x.due_date ? <bdi dir="ltr">{x.due_date}</bdi> : 'No due date'}{x.due_date && x.due_date < p.today ? ' · overdue' : ''}</p>
         </article>)}
-        <button className="task-card add-task" onClick={p.onAddTask}>＋ Add task</button>
+        {open.length ? <button className="task-card add-task" onClick={p.onAddTask}>＋ Add task</button> : <div className="dashboard-empty"><span className="dashboard-empty-icon" aria-hidden="true">✓</span><div><strong>Nothing on your list</strong><p>Give your next task a place to start.</p></div><button className="link" onClick={p.onAddTask}>＋ Add task</button></div>}
       </div>
     </section>
     <section className="b-projects"><div className="row"><h2>Recent projects</h2><button className="link" onClick={() => p.onPage(1)}>All projects ›</button></div>
       <div className="project-cards">
         {recent.map(x => <article className="project-card" key={x.id}><button className="proj-name on-dark" onClick={() => p.onOpenProject(x.id)}>{x.name}</button><p dir="ltr" className="path">{x.path}</p><p className="muted">Last opened <bdi dir="ltr">{x.last_opened_at} UTC</bdi></p>
           <div className="row actions"><button className="link" onClick={() => p.onOpenFolder(x.id)}>Open folder</button><button className="link" disabled={!p.editorPath} title={!p.editorPath ? 'Configure the editor in Settings first' : undefined} onClick={() => p.onOpenEditor(x.id)}>Open in VS Code</button></div></article>)}
-        {!recent.length && <p className="muted empty-line">Opened projects will appear here.</p>}
+        {!recent.length && <div className="dashboard-empty empty-line"><span className="dashboard-empty-icon" aria-hidden="true">◇</span><div><strong>Your projects, close at hand</strong><p>{p.projects.length ? 'Open a project to see it here.' : 'Add a project to get started.'}</p></div><button className="link" onClick={() => p.onPage(1)}>{p.projects.length ? 'Browse projects' : 'Add a project'}</button></div>}
       </div>
     </section>
     <div className={`b-side${cont ? ' with-continue' : ''}`}>
       {cont && <section className="card b-continue"><div className="row"><div><h2>Continue where you left off</h2><p><strong>{cont.project_name}</strong>{cont.is_active ? ' · session in progress' : ''}</p><p className="muted">{cont.is_active ? <>Started <bdi dir="ltr">{cont.started_at} UTC</bdi></> : cont.summary || 'Session ended'}</p>{!cont.is_active && cont.next_action && <p><strong>Next:</strong> {cont.next_action}</p>}</div><button onClick={() => p.onOpenProject(cont.project_id)}>{cont.is_active ? 'Return to session' : 'Resume project'}</button></div></section>}
     <section className="card b-notes"><div className="row"><h2>Recent notes</h2><button className="link" onClick={p.onAddNote}>＋ Add note</button></div>
-      {notes.slice(0, 3).map(x => <p key={x.id}>{x.title}</p>)}{!notes.length && <p className="muted">Your notes will appear here.</p>}</section></div>
+      {recentNotes.length ? <div className="dashboard-notes">{recentNotes.map(x => <button className="dashboard-note" key={x.id} onClick={() => p.onEdit(x)}><span className="dashboard-note-icon" aria-hidden="true">▤</span><span><strong>{x.title}</strong><small>{x.category || 'Note'}</small></span><span aria-hidden="true">›</span></button>)}</div> : <div className="dashboard-placeholder"><span aria-hidden="true">✎</span><div><strong>Capture an idea</strong><p>Your notes will appear here.</p></div></div>}</section></div>
   </div>;
 }

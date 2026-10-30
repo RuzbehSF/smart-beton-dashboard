@@ -1,3 +1,4 @@
+import {createPortal} from 'react-dom';
 import React, {useEffect, useState} from 'react';
 import {invoke} from './native';
 import {commitSummary, displayPath, formatDuration, HARNESSES, parseUtc, type Item, type ProjectRecord} from './domain';
@@ -84,10 +85,12 @@ export function ProjectDetail(p:Props) {
       <div className="launch-row"><label className="harness">AI tool<select aria-label="AI tool" value={project.ai_harness ?? 'claude'} onChange={e => run('set_project_harness', {id: project.id, harness: e.target.value})}>{HARNESSES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label><button className="launch-btn" onClick={openWorkspace}>Open in VS Code + {HARNESSES.find(([id]) => id === (project.ai_harness ?? 'claude'))?.[1]}</button></div>
       <div className="tool-actions" role="toolbar" aria-label="Project actions">
         <button className="link" onClick={() => run('open_project_folder', {id: project.id}, 'Opened the folder.')}>Open folder</button>
-        {TOOLS.map(([id, label]) => <button key={id} className={id === preferred ? 'link preferred' : 'link'} title={id === preferred ? 'Preferred tool for this project' : undefined} onClick={() => launch(id, label)}>{id === 'terminal' ? 'Open terminal' : `Open in ${label}`}</button>)}
-        <button className="link" onClick={copyPath}>Copy path</button>
-        {project.website_url && <button className="link" onClick={() => run('open_external_url', {url: project.website_url}, 'Opened the website.')}>Open website</button>}
         {active ? <button onClick={() => {p.onError(''); setEnding(true);}}>End session ({formatDuration(elapsed)})</button> : <button onClick={() => run('start_project_session', {projectId: project.id}, 'Session started.')}>Start session</button>}
+        <details className="project-more"><summary>More actions</summary><div className="project-more-actions">
+          {TOOLS.map(([id, label]) => <button key={id} className={id === preferred ? 'link preferred' : 'link'} title={id === preferred ? 'Preferred tool for this project' : undefined} onClick={() => launch(id, label)}>{id === 'terminal' ? 'Open terminal' : `Open in ${label}`}</button>)}
+          <button className="link" onClick={copyPath}>Copy path</button>
+          {project.website_url && <button className="link" onClick={() => run('open_external_url', {url: project.website_url}, 'Opened the website.')}>Open website</button>}
+        </div></details>
       </div>
       {notice && <p role="status" className="muted">{notice}</p>}
     </div>
@@ -136,7 +139,7 @@ export function ProjectDetail(p:Props) {
         <button className="link" disabled={x.is_active} onClick={async () => { if (window.confirm('Delete this working session?')) run('delete_session', {id: x.id, projectId: project.id}); }}>Delete</button></div>)}{!sessions.length && <p className="muted">No sessions yet.</p>}</>}
     </div>
 
-    {editing && <div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="Edit project" onSubmit={saveEdit} onKeyDown={e => { if (e.key === 'Escape') setEditing(false); }}>
+    {editing && createPortal(<div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="Edit project" onSubmit={saveEdit} onKeyDown={e => { if (e.key === 'Escape') setEditing(false); }}>
       <h2>Edit project</h2>
       <label>Name<input required maxLength={120} value={form.name} onChange={e => setForm({...form, name: e.target.value})}/></label>
       <label>Description<textarea maxLength={2000} value={form.description} onChange={e => setForm({...form, description: e.target.value})}/></label>
@@ -146,15 +149,15 @@ export function ProjectDetail(p:Props) {
       <label>Technology tags (comma separated)<input maxLength={200} value={form.technology_tags} onChange={e => setForm({...form, technology_tags: e.target.value})}/></label>
       <label>Website (optional, http or https)<input dir="ltr" maxLength={500} value={form.website_url} onChange={e => setForm({...form, website_url: e.target.value})}/></label>
       <div className="row"><button type="button" className="secondary" onClick={() => setEditing(false)}>Cancel</button><button>Save</button></div>
-    </form></div>}
+    </form></div>, document.querySelector('.app') ?? document.body)}
 
-    {ending && <div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="End working session" onSubmit={endSession} onKeyDown={e => { if (e.key === 'Escape') setEnding(false); }}>
+    {ending && createPortal(<div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="End working session" onSubmit={endSession} onKeyDown={e => { if (e.key === 'Escape') setEnding(false); }}>
       <h2>End session</h2>
       <label>What did you complete?<textarea value={report.completed} onChange={e => setReport({...report, completed: e.target.value})}/></label>
       <label>What is unfinished?<textarea value={report.unfinished} onChange={e => setReport({...report, unfinished: e.target.value})}/></label>
       <label>Are there unresolved problems?<textarea value={report.problems} onChange={e => setReport({...report, problems: e.target.value})}/></label>
       <label>What should you do next time?<input value={report.next_action} onChange={e => setReport({...report, next_action: e.target.value})}/></label>
       <div className="row"><button type="button" className="secondary" onClick={() => setEnding(false)}>Keep working</button><button>Save and end session</button></div>
-    </form></div>}
+    </form></div>, document.querySelector('.app') ?? document.body)}
   </section>;
 }

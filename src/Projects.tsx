@@ -1,3 +1,4 @@
+import {createPortal} from 'react-dom';
 import React, {useEffect, useState} from 'react';
 import {invoke, isTauri, open} from './native';
 import {commitSummary, displayPath, HARNESSES, selectProjects, type Item, type ProjectRecord} from './domain';
@@ -50,6 +51,23 @@ export function Projects(p:Props) {
       setScan(result); setSelected(result.candidates.filter(c => !c.known).map(c => c.path));
       if (!result.candidates.some(c => !c.known)) setMessage(result.candidates.length ? 'No new projects were found; everything here is already on the dashboard.' : 'No projects were found in this folder.');
     } catch (e) { p.onError(String(e)); } finally { setScanning(false); }
+  }
+  async function rescanAndReadd() {
+    setScanning(true); setMessage(''); p.onError('');
+    let added = 0;
+    try {
+      await invoke('clear_ignored_projects', {});
+      const result = await invoke<Scan>('scan_project_root', {id: null, nested});
+      const byRoot = new Map<number, string[]>();
+      for (const c of result.candidates) if (!c.known) byRoot.set(c.root_id, [...(byRoot.get(c.root_id) ?? []), c.path]);
+      for (const [rootId, paths] of byRoot) {
+        const count = await invoke<unknown>('import_root_projects', {rootId, paths, nested});
+        added += typeof count === 'number' ? count : paths.length;
+      }
+      setScan(null); setSelected([]); setScope('active'); setStatus('all'); setQuery('');
+      setMessage(`${added} project${added === 1 ? '' : 's'} added from your project folders.${result.warnings.length ? ` ${result.warnings.length} scan warning(s): ${result.warnings.slice(0, 3).join(' · ')}` : ''}`);
+    } catch (e) { p.onError(`Rescan stopped after adding ${added} project(s): ${String(e)}`); }
+    finally { p.onChanged(); await loadRoots(); setScanning(false); }
   }
   async function addRoot() {
     try {
@@ -135,9 +153,9 @@ The folder and its files are NOT touched. Its notes and tasks stay but lose the 
 
       <div className="folders">
         {!showFolders ? <div className="folders-summary"><span>📁 {roots.length} project folder{roots.length === 1 ? '' : 's'} · {total} project{total === 1 ? '' : 's'}</span>
-          <button className="link" disabled={scanning} onClick={() => scanRoots(null)}>{scanning ? 'Scanning…' : 'Find new projects'}</button><button className="link" onClick={() => setFoldersOpen(true)}>Manage folders</button></div>
+          <button className="link" disabled={scanning} onClick={rescanAndReadd}>{scanning ? 'Scanning…' : 'Rescan & re-add projects'}</button><button className="link" disabled={scanning} onClick={() => scanRoots(null)}>Review new projects</button><button className="link" onClick={() => setFoldersOpen(true)}>Manage folders</button></div>
         : <div className="roots-panel">
-          <div className="row"><h3>Project folders</h3><div className="row">{roots.length > 0 && !scan && <button className="link" onClick={() => setFoldersOpen(false)}>Hide</button>}{roots.length > 0 && <button className="link" disabled={scanning} onClick={() => scanRoots(null)}>{scanning ? 'Scanning…' : 'Find new projects'}</button>}<button onClick={addRoot} disabled={scanning}>＋ Add folder</button></div></div>
+          <div className="row"><h3>Project folders</h3><div className="row">{roots.length > 0 && !scan && <button className="link" onClick={() => setFoldersOpen(false)}>Hide</button>}{roots.length > 0 && <><button className="link" disabled={scanning} onClick={rescanAndReadd}>{scanning ? 'Scanning…' : 'Rescan & re-add projects'}</button><button className="link" disabled={scanning} onClick={() => scanRoots(null)}>Review new projects</button></>}<button onClick={addRoot} disabled={scanning}>＋ Add folder</button></div></div>
           {!roots.length && <p className="muted">Add the folder that holds all your projects (for example A:\SmartBeton). Each project folder becomes one block; the folders inside a project, such as front end and back end, are not listed separately.</p>}
           {roots.map(root => <div className="root-item" key={root.id}><div><strong>{root.label || displayPath(root.path)}</strong><span dir="ltr" className="path">{displayPath(root.path)}</span><span className="muted">{root.project_count} project{root.project_count === 1 ? '' : 's'}{root.exclusions ? ` · skipping ${root.exclusions}` : ''}</span></div>
             <div className="row actions"><button className="link" disabled={scanning} onClick={() => scanRoots(root.id)}>Rescan</button><button className="link" onClick={() => setEditRoot(root)}>Settings</button><button className="link danger" onClick={() => removeRoot(root)}>Remove</button></div></div>)}
@@ -164,22 +182,22 @@ The folder and its files are NOT touched. Its notes and tasks stay but lose the 
       </div>
     </div>
     <div className={view === 'grid' ? 'proj-grid' : 'proj-list'}>{list.map(card)}</div>
-    {!list.length && <div className="card empty-card"><p className="muted">{p.projects.length ? 'No projects match these filters.' : 'No projects yet. Add the folder that holds your projects, or add one project by hand.'}</p></div>}
+    {!list.length && <div className="card empty-card"><p className="muted">{p.projects.length ? 'No projects match these filters.' : 'No projects yet. Add the folder that holds your projects, or add one project by hand.'}</p>{p.projects.length ? <button className="link" onClick={() => {setQuery(''); setScope('active'); setStatus('all');}}>Clear filters</button> : <button className="link" onClick={() => setAdding(true)}>＋ Add project</button>}</div>}
 
-    {editRoot && <div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="Folder settings" onSubmit={saveRoot} onKeyDown={e => { if (e.key === 'Escape') setEditRoot(null); }}>
+    {editRoot && createPortal(<div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="Folder settings" onSubmit={saveRoot} onKeyDown={e => { if (e.key === 'Escape') setEditRoot(null); }}>
       <h2>Folder settings</h2><p dir="ltr" className="path">{displayPath(editRoot.path)}</p>
       <label>Label (optional)<input maxLength={80} value={editRoot.label} onChange={e => setEditRoot({...editRoot, label: e.target.value})}/></label>
       <label>Folders to skip (comma separated names)<input dir="ltr" placeholder="archive, old, tmp" value={editRoot.exclusions} onChange={e => setEditRoot({...editRoot, exclusions: e.target.value})}/></label>
       <p className="muted">Hidden folders, node_modules, build output and similar are always skipped.</p>
       <div className="row"><button type="button" className="secondary" onClick={() => setEditRoot(null)}>Cancel</button><button>Save</button></div>
-    </form></div>}
+    </form></div>, document.querySelector('.app') ?? document.body)}
 
-    {adding && <div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="Add project" onSubmit={createProject} onKeyDown={e => { if (e.key === 'Escape') setAdding(false); }}>
+    {adding && createPortal(<div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="Add project" onSubmit={createProject} onKeyDown={e => { if (e.key === 'Escape') setAdding(false); }}>
       <h2>Add project</h2>
       <label>Project folder<input readOnly required dir="ltr" value={path} placeholder="Choose a folder"/></label><button type="button" className="secondary" onClick={chooseProjectFolder}>Choose folder</button>
       <label>Name<input required maxLength={120} value={name} onChange={e => setName(e.target.value)}/></label>
       <label>Description (optional)<textarea maxLength={2000} value={description} onChange={e => setDescription(e.target.value)}/></label>
       <div className="row"><button type="button" className="secondary" onClick={() => setAdding(false)}>Cancel</button><button disabled={!path || !name.trim()}>Add project</button></div>
-    </form></div>}
+    </form></div>, document.querySelector('.app') ?? document.body)}
   </section>;
 }

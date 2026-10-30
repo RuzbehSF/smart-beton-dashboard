@@ -1,3 +1,4 @@
+import {createPortal} from 'react-dom';
 import React, {useEffect, useState} from 'react';
 import {invoke} from './native';
 import {HARNESSES, type ProjectRecord} from './domain';
@@ -38,7 +39,7 @@ export function ProjectWorkspaces({project, onNavigate, onError, onChanged}:Prop
     {profiles.map(x => <div className="item" key={x.id}><div><strong>{x.name}</strong><p className="muted">{describe(x)}</p></div>
       <button className="link" onClick={() => run(x)}>Run</button><button className="link" onClick={() => {onError(''); setForm(x);}}>Edit</button><button className="link danger" onClick={() => remove(x)}>Delete</button></div>)}
     {!profiles.length && <p className="muted">No profiles yet.</p>}
-    {form && <div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="Workspace profile" onSubmit={async e => { e.preventDefault(); await save(form); }} onKeyDown={e => { if (e.key === 'Escape') setForm(null); }}>
+    {form && createPortal(<div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="Workspace profile" onSubmit={async e => { e.preventDefault(); await save(form); }} onKeyDown={e => { if (e.key === 'Escape') setForm(null); }}>
       <h2>{form.id ? 'Edit profile' : 'New profile'}</h2>
       <label>Name<input required maxLength={60} value={form.name} onChange={e => setForm({...form, name: e.target.value})}/></label>
       <label className="inline-check"><input type="checkbox" checked={form.open_folder} onChange={e => setForm({...form, open_folder: e.target.checked})}/>Open the project folder</label>
@@ -49,6 +50,6 @@ export function ProjectWorkspaces({project, onNavigate, onError, onChanged}:Prop
       <label className="inline-check"><input type="checkbox" checked={form.show_notes} onChange={e => setForm({...form, show_notes: e.target.checked})}/>Show the project notes</label>
       <label className="inline-check"><input type="checkbox" checked={form.show_tasks} onChange={e => setForm({...form, show_tasks: e.target.checked})}/>Show the project tasks</label>
       <div className="row"><button type="button" className="secondary" onClick={() => setForm(null)}>Cancel</button><button>Save</button></div>
-    </form></div>}
+    </form></div>, document.querySelector('.app') ?? document.body)}
   </div>;
 }

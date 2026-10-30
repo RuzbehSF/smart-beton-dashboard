@@ -1,4 +1,5 @@
 import React, {useEffect, useState} from 'react';
+import {createPortal} from 'react-dom';
 import {invoke} from './native';
 
 type Project = {id:number; name:string};
@@ -50,16 +51,18 @@ export function Connections({projects}: {projects:Project[]}) {
   const credentialName = (id:number|null) => credentials.find(c => c.id === id)?.name;
 
   return <section className="card collection connections-page">
-    <div className="row"><h2>Servers & Connections</h2><button onClick={() => {setError(''); setForm(blank());}}>＋ Add</button></div>
+    <div className="row"><h2>Server</h2><button onClick={() => {setError(''); setForm(blank());}}>＋ Add</button></div>
     <p className="muted">Metadata only. Do not enter passwords, tokens, or credential-bearing URLs; link a Secure Vault entry instead. Web, SSH, Remote Desktop and AnyDesk entries open after confirmation, and nothing connects on its own.</p>
     <div className="proj-toolbar">
       <input className="search" aria-label="Search connections" placeholder="Search name, address, user or notes" value={query} onChange={e => setQuery(e.target.value)}/>
       <label>Project<select value={projectFilter} onChange={e => setProjectFilter(e.target.value)}><option value="all">All</option>{projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
       <label>Environment<select value={environmentFilter} onChange={e => setEnvironmentFilter(e.target.value)}><option value="all">All</option>{ENVIRONMENTS.map(([id, text]) => <option key={id} value={id}>{text}</option>)}</select></label>
       <label>Type<select value={kindFilter} onChange={e => setKindFilter(e.target.value)}><option value="all">All</option>{KINDS.map(([id, text]) => <option key={id} value={id}>{text}</option>)}</select></label>
+      {(query || projectFilter !== 'all' || environmentFilter !== 'all' || kindFilter !== 'all') && <button className="link" onClick={() => {setQuery(''); setProjectFilter('all'); setEnvironmentFilter('all'); setKindFilter('all');}}>Clear filters</button>}
     </div>
     {error && !form && <p role="alert" className="error">{error}</p>}
     {notice && <p role="status">{notice}</p>}
+    <p className="collection-count" aria-live="polite">{list.length} {list.length === 1 ? 'connection' : 'connections'}</p>
     {list.map(item => <article className="item connection-item" key={item.id}>
       <div className="vault-main">
         <div className="row"><strong>{item.name}</strong></div>
@@ -84,9 +87,9 @@ export function Connections({projects}: {projects:Project[]}) {
         <button className="link" onClick={() => remove(item.id!)}>Delete</button>
       </div>
     </article>)}
-    {!list.length && <p className="muted">{items.length ? 'No connections match these filters.' : 'No connections saved.'}</p>}
+    {!list.length && <div className="collection-empty"><p>{items.length ? 'No connections match these filters.' : 'No connections saved yet.'}</p>{items.length ? <button className="link" onClick={() => {setQuery(''); setProjectFilter('all'); setEnvironmentFilter('all'); setKindFilter('all');}}>Clear filters</button> : <button className="link" onClick={() => {setError(''); setForm(blank());}}>Add connection</button>}</div>}
 
-    {form && <div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="Connection" onSubmit={submit} onKeyDown={e => { if (e.key === 'Escape') setForm(null); }}>
+    {form && createPortal(<div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="Connection" onSubmit={submit} onKeyDown={e => { if (e.key === 'Escape') setForm(null); }}>
       <h2>{form.id ? 'Edit connection' : 'New connection'}</h2>
       {error && <p className="error" role="alert">{error}</p>}
       <label>Name<input required value={form.name} onChange={e => setForm({...form, name: e.target.value})}/></label>
@@ -101,6 +104,6 @@ export function Connections({projects}: {projects:Project[]}) {
         <label>Credential<select value={form.credential_id ?? ''} onChange={e => setForm({...form, credential_id: e.target.value ? Number(e.target.value) : null})}><option value="">None</option>{credentials.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label></div>
       <label>Notes<textarea className="short" value={form.description} onChange={e => setForm({...form, description: e.target.value})}/></label>
       <div className="row"><button type="button" className="secondary" onClick={() => setForm(null)}>Cancel</button><button>Save</button></div>
-    </form></div>}
+    </form></div>, document.querySelector('.app') ?? document.body)}
   </section>;
 }

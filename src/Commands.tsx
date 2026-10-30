@@ -1,3 +1,4 @@
+import {createPortal} from 'react-dom';
 import React, {useEffect, useState} from 'react';
 import {invoke, open} from './native';
 
@@ -55,7 +56,7 @@ export function Commands({projects}: {projects:Project[]}) {
     && (!needle || [x.name, x.executable, x.description, x.category].some(v => (v ?? '').toLocaleLowerCase().includes(needle))));
 
   return <section className="card collection commands-page">
-    <div className="row"><h2>Developer Tools & Commands</h2><button disabled={!projects.length} title={!projects.length ? 'Import a project first' : undefined} onClick={() => {setError(''); setArgs('[]'); setForm({id: null, name: '', executable: '', arguments: [], project_id: projects[0].id, description: '', working_directory: '', category: 'development', risk_level: 'development', is_favorite: false});}}>Add command</button></div>
+    <div className="row"><h2>Developer Tools</h2><button disabled={!projects.length} title={!projects.length ? 'Import a project first' : undefined} onClick={() => {setError(''); setArgs('[]'); setForm({id: null, name: '', executable: '', arguments: [], project_id: projects[0].id, description: '', working_directory: '', category: 'development', risk_level: 'development', is_favorite: false});}}>Add command</button></div>
     <p className="muted">Only run trusted executables. Arguments are saved in plaintext; never put passwords or tokens in them. Some common shells are blocked, but any executable can perform harmful actions. Output is kept in memory and limited to 64 KiB. It may contain sensitive information.</p>
     {error && !form && <p className="error" role="alert">{error}</p>}
     {message && <p role="status">{message}</p>}
@@ -65,7 +66,9 @@ export function Commands({projects}: {projects:Project[]}) {
       <label>Risk<select value={riskFilter} onChange={e => setRiskFilter(e.target.value)}><option value="all">All</option>{RISKS.map(([id, text]) => <option key={id} value={id}>{text}</option>)}</select></label>
       <label>Category<select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="all">All</option>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select></label>
       <label className="inline-check"><input type="checkbox" checked={favoritesOnly} onChange={e => setFavoritesOnly(e.target.checked)}/>Favorites only</label>
+      {(search || riskFilter !== 'all' || categoryFilter !== 'all' || favoritesOnly) && <button className="link" onClick={() => {setSearch(''); setRiskFilter('all'); setCategoryFilter('all'); setFavoritesOnly(false);}}>Clear filters</button>}
     </div>
+    <p className="collection-count" aria-live="polite">{list.length} {list.length === 1 ? 'command' : 'commands'}</p>
     {list.map(item => <article className="item connection-item" key={item.id}>
       <div className="vault-main">
         <div className="row"><strong>{item.name}</strong><button className="link tiny star" aria-pressed={item.is_favorite} aria-label={item.is_favorite ? `Remove ${item.name} from favorites` : `Add ${item.name} to favorites`} onClick={() => toggleFavorite(item)}>{item.is_favorite ? '★' : '☆'}</button></div>
@@ -81,9 +84,9 @@ export function Commands({projects}: {projects:Project[]}) {
         <button className="link" onClick={() => remove(item.id!)}>Delete</button>
       </div>
     </article>)}
-    {!list.length && <p className="muted">{items.length ? 'No commands match these filters.' : 'No commands saved yet.'}</p>}
+    {!list.length && <div className="collection-empty"><p>{items.length ? 'No commands match these filters.' : projects.length ? 'No commands saved yet. Use Add command to get started.' : 'Add a project before creating a command.'}</p>{items.length > 0 && <button className="link" onClick={() => {setSearch(''); setRiskFilter('all'); setCategoryFilter('all'); setFavoritesOnly(false);}}>Clear filters</button>}</div>}
 
-    {form && <div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="Command" onSubmit={submit} onKeyDown={e => { if (e.key === 'Escape') {setForm(null); setError('');} }}>
+    {form && createPortal(<div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="Command" onSubmit={submit} onKeyDown={e => { if (e.key === 'Escape') {setForm(null); setError('');} }}>
       <h2>Command</h2>
       {error && <p role="alert" className="error">{error}</p>}
       <label>Name<input required value={form.name} onChange={e => setForm({...form, name: e.target.value})}/></label>
@@ -97,6 +100,6 @@ export function Commands({projects}: {projects:Project[]}) {
       <p className="muted">{RISKS.find(([id]) => id === form.risk_level)?.[2]}</p>
       <label className="inline-check"><input type="checkbox" checked={form.is_favorite} onChange={e => setForm({...form, is_favorite: e.target.checked})}/>Favorite</label>
       <div className="row"><button type="button" className="secondary" onClick={() => {setForm(null); setError('');}}>Cancel</button><button>Save</button></div>
-    </form></div>}
+    </form></div>, document.querySelector('.app') ?? document.body)}
   </section>;
 }

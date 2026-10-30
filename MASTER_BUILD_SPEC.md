@@ -575,10 +575,10 @@ The application contains NINE main sections:
 2. Projects
 3. Notes
 4. Secure Vault
-5. Servers & Connections
+5. Server
 6. My Tasks
 7. Automations
-8. Developer Tools & Commands
+8. Developer Tools
 9. Settings
 
 Persian labels:
@@ -605,11 +605,11 @@ WORKSPACE
 
 INFRASTRUCTURE
 - Secure Vault
-- Servers & Connections
+- Server
 
 PRODUCTIVITY
 - Automations
-- Developer Tools & Commands
+- Developer Tools
 
 SYSTEM
 - Settings
@@ -3351,7 +3351,7 @@ They open Secure Vault, find the authorized credential, and explicitly copy the 
 
 They need to connect to a server.
 
-They open Servers & Connections, select the associated project server, and launch their configured connection tool.
+They open Server, select the associated project server, and launch their configured connection tool.
 
 At the end of the day, they save their session summary.
 

@@ -34,6 +34,6 @@ export function WeeklyActivity({days}:{days:ActivityDay[]}) {
       </svg>
       <div className="weekdays" aria-hidden="true">{days.map((d, i) => <span key={d.day} className={i === days.length - 1 ? 'today' : ''}>{weekday(d.day)}</span>)}</div>
       <table className="activity-table sr-only"><caption>Created and completed task actions per day. Tracking begins with this version.</caption><thead><tr><th>Date</th><th>Created</th><th>Completed</th></tr></thead><tbody>{days.map(d => <tr key={d.day}><td dir="ltr">{d.day}</td><td>{d.created}</td><td>{d.completed}</td></tr>)}</tbody></table>
-    </> : <div className="empty">No recorded task activity in the last seven days. Tracking begins with this version.</div>}
+    </> : <div className="weekly-empty"><span aria-hidden="true">⌁</span><strong>Activity starts here</strong><p>Created and completed tasks will appear over the last seven days.</p></div>}
   </section>;
 }

@@ -1,3 +1,4 @@
+import {createPortal} from 'react-dom';
 import React, {useEffect, useRef, useState} from 'react';
 import {invoke} from './native';
 
@@ -99,7 +100,9 @@ export function Vault(props:Props) {
         <label>Type<select value={kindFilter} onChange={e => setKindFilter(e.target.value)}><option value="all">All types</option>{KINDS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
         <label>Project<select value={projectFilter} onChange={e => setProjectFilter(e.target.value)}><option value="all">All projects</option>{projects.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
         <label className="inline-check"><input type="checkbox" checked={favoritesOnly} onChange={e => setFavoritesOnly(e.target.checked)}/>Favorites only</label>
+        {(query || kindFilter !== 'all' || projectFilter !== 'all' || favoritesOnly) && <button className="link" onClick={() => {setQuery(''); setKindFilter('all'); setProjectFilter('all'); setFavoritesOnly(false);}}>Clear filters</button>}
       </div>
+      <p className="collection-count" aria-live="polite">{visible.length} {visible.length === 1 ? 'entry' : 'entries'}</p>
       {notice && <p role="status">{notice}</p>}
       {error && !mode && <p role="alert" className="error">{error}</p>}
       {visible.map(item => {
@@ -127,10 +130,10 @@ export function Vault(props:Props) {
           </div>
         </article>;
       })}
-      {!visible.length && <p className="muted">{items.length ? 'No credentials match these filters.' : 'No credentials yet. Add one, or create a secure note instead of keeping secrets in ordinary notes.'}</p>}
+      {!visible.length && <div className="collection-empty"><p>{items.length ? 'No credentials match these filters.' : 'No credentials yet. Add one, or create a secure note.'}</p>{items.length ? <button className="link" onClick={() => {setQuery(''); setKindFilter('all'); setProjectFilter('all'); setFavoritesOnly(false);}}>Clear filters</button> : <button className="link" onClick={() => openAdd()}>Add credential</button>}</div>}
     </>}
 
-    {mode && !locked && <div className="overlay"><form className="dialog vault-dialog" role="dialog" aria-modal="true" aria-label="Credential" onSubmit={submit} onKeyDown={e => { if (e.key === 'Escape') close(); }}>
+    {mode && !locked && createPortal(<div className="overlay"><form className="dialog vault-dialog" role="dialog" aria-modal="true" aria-label="Credential" onSubmit={submit} onKeyDown={e => { if (e.key === 'Escape') close(); }}>
       <h2>{replacing ? (isNote ? 'Edit secure note text' : 'Replace secret') : adding ? 'New credential' : 'Edit details'}</h2>
       {error && <p className="error" role="alert">{error}</p>}
       {!replacing && <>
@@ -155,6 +158,6 @@ export function Vault(props:Props) {
         ? <label>{secretLabel(kind)}<textarea required autoComplete="off" value={draft.secret} onChange={e => set({secret: e.target.value})}/></label>
         : <label>Secret<input type="password" autoFocus required autoComplete="new-password" value={draft.secret} onChange={e => set({secret: e.target.value})}/></label>)}
       <div className="row"><button type="button" className="secondary" onClick={close}>Cancel</button><button>Save</button></div>
-    </form></div>}
+    </form></div>, document.querySelector('.app') ?? document.body)}
   </section>;
 }

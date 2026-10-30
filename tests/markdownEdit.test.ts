@@ -10,6 +10,13 @@ test('bold wraps the selection and unwraps it again', () => {
   assert.equal(again.text, 'say hello now');
   assert.equal(again.text.slice(again.start, again.end), 'hello');
   assert.equal(wrapSelection('say **hello** now', 4, 13, '**').text, 'say hello now');
+  // Unwraps when double-clicking just the inner word without the asterisks
+  const innerUnwrap = wrapSelection('say **hello** now', 6, 11, '**');
+  assert.equal(innerUnwrap.text, 'say hello now');
+  assert.equal(innerUnwrap.start, 4);
+  assert.equal(innerUnwrap.end, 9);
+  // Unwraps empty markers when cursor is right in the middle
+  assert.equal(wrapSelection('****', 2, 2, '**').text, '');
 });
 test('italic and code toggle using the selection returned by the first edit', () => {
   for (const marker of ['*', '`']) {
@@ -29,11 +36,17 @@ test('list buttons prefix every selected line and toggle off', () => {
   assert.equal(on.text, '- one\n- two\n- three');
   assert.equal(prefixLines(on.text, 0, on.text.length, '- ').text, text);
   assert.equal(prefixLines('a\nb', 2, 2, '> ').text, 'a\n> b');
+  // Selecting from line 1 to the first character of line 2 includes line 2
+  const multi = prefixLines('line 1\nline 2', 0, 7, '- ');
+  assert.equal(multi.text, '- line 1\n- line 2');
 });
 test('numbering counts from one and toggles off', () => {
   const on = numberLines('a\nb\nc', 0, 5);
   assert.equal(on.text, '1. a\n2. b\n3. c');
   assert.equal(numberLines(on.text, 0, on.text.length).text, 'a\nb\nc');
+  // Selecting from line 1 to the start of line 2 includes line 2
+  const multiNumber = numberLines('first\nsecond', 0, 6);
+  assert.equal(multiNumber.text, '1. first\n2. second');
 });
 test('formatting an empty first line does not duplicate the newline', () => {
   assert.equal(prefixLines('\nnext', 0, 0, '> ').text, '> \nnext');

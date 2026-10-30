@@ -1,3 +1,8 @@
+@font-face{font-family:Geist;src:url('./assets/fonts/Geist-Variable.woff2') format('woff2');font-style:normal;font-weight:100 900;font-display:swap}
+@font-face{font-family:Geist;src:url('./assets/fonts/Geist-Italic-Variable.woff2') format('woff2');font-style:italic;font-weight:100 900;font-display:swap}
+@font-face{font-family:'Geist Mono';src:url('./assets/fonts/GeistMono-Variable.woff2') format('woff2');font-style:normal;font-weight:100 900;font-display:swap}
+:root{font-family:Geist,'Segoe UI',Tahoma,sans-serif}
+select{font:inherit}
 /* Glass look matched to the reference: soft abstract grey backdrop, translucent frame and cards. Loaded after style.css. */
 body{background:radial-gradient(ellipse 60% 70% at 18% 12%,#f7f7f7 0,transparent 60%),radial-gradient(ellipse 55% 60% at 85% 20%,#bdbdbd 0,transparent 65%),radial-gradient(ellipse 70% 60% at 60% 95%,#d9d9d9 0,transparent 60%),radial-gradient(ellipse 40% 50% at 5% 85%,#a9a9a9 0,transparent 70%),#cfcfcf;background-attachment:fixed;min-height:100vh}
 body:has(.app.dark){background:radial-gradient(ellipse 60% 70% at 18% 12%,#3a3a3e 0,transparent 60%),radial-gradient(ellipse 55% 60% at 85% 20%,#2a2a2d 0,transparent 65%),radial-gradient(ellipse 70% 60% at 60% 95%,#1d1d20 0,transparent 60%),#0e0e10;background-attachment:fixed}
@@ -12,9 +17,9 @@ body:has(.app.dark){background:radial-gradient(ellipse 60% 70% at 18% 12%,#3a3a3
 .app.dark .card.contrast{background:#e8e8e8;color:#171717}
 .card.goals{background:rgba(255,255,255,.85)}
 .app.dark .card.goals{background:rgba(36,36,39,.85)}
-.dialog{background:rgba(255,255,255,.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.8)}
+.dialog{position:relative;z-index:10000;background:rgba(255,255,255,.96);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.8);border-radius:20px;box-shadow:0 18px 55px rgba(0,0,0,.22)}
 .dark .dialog{background:rgba(36,36,39,.9);border-color:rgba(255,255,255,.1)}
-.overlay{background:rgba(0,0,0,.35);backdrop-filter:blur(6px)}
+.overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);display:grid;place-items:center}
 .headerbuttons .round{background:rgba(255,255,255,.85)}
 .app.dark .headerbuttons .round{background:rgba(50,50,54,.85)}
 .item{border-top-color:rgba(0,0,0,.08)}
@@ -106,7 +111,7 @@ aside{transition:width .25s ease}
 .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.seg{display:inline-flex;border:1px solid var(--border-strong,#d3d3d3);border-radius:20px;overflow:hidden}.seg button{background:transparent;color:var(--text);padding:7px 14px;font-size:13px}.seg button.active{background:#222;color:#fff}.app.dark .seg button.active{background:#eee;color:#111}
 .save-status{margin-inline-start:auto;font-size:12px;color:var(--muted)}.save-status.saved{color:#2f6b2f}.save-status.error,.save-status.needs-title{color:#8a1c1c}.app.dark .save-status.saved{color:#9ad39a}.app.dark .save-status.error,.app.dark .save-status.needs-title{color:#f1a3a3}
 .editor-panes{display:grid;gap:12px;flex:1;min-height:360px}.editor-panes.mode-split{grid-template-columns:1fr 1fr}.editor-panes.mode-edit,.editor-panes.mode-preview{grid-template-columns:1fr}
-.editor-text{width:100%;height:100%;min-height:360px;resize:vertical;padding:14px;border-radius:16px;border:1px solid var(--border-strong,#d3d3d3);background:rgba(255,255,255,.55);color:var(--text);font:14px/1.6 "JetBrains Mono",Consolas,monospace}.app.dark .editor-text{background:rgba(255,255,255,.06)}
+.editor-text{width:100%;height:100%;min-height:360px;resize:vertical;padding:14px;border-radius:16px;border:1px solid var(--border-strong,#d3d3d3);background:rgba(255,255,255,.55);color:var(--text);font:14px/1.6 "Geist Mono",Consolas,monospace}.app.dark .editor-text{background:rgba(255,255,255,.06)}
 .editor-preview{padding:14px 18px;border-radius:16px;background:rgba(255,255,255,.4);overflow:auto;max-height:calc(100vh - 340px)}.app.dark .editor-preview{background:rgba(255,255,255,.04)}
 .markdown{line-height:1.65;overflow-wrap:anywhere}.markdown h1,.markdown h2,.markdown h3{margin:.8em 0 .4em}.markdown p{margin:.5em 0;white-space:pre-line}.markdown code{background:rgba(0,0,0,.08);padding:1px 6px;border-radius:6px;font-size:.92em}.app.dark .markdown code{background:rgba(255,255,255,.12)}
 .markdown pre{background:#232325;color:#f4f4f4;padding:14px;border-radius:14px;overflow:auto}.markdown pre code{background:transparent;padding:0;color:inherit}.markdown blockquote{margin:.6em 0;padding:4px 14px;border-inline-start:3px solid var(--border-strong,#bbb);color:var(--muted)}.markdown a{color:var(--text);text-decoration:underline;cursor:pointer}.markdown ul,.markdown ol{padding-inline-start:22px}.markdown .task-item{list-style:none;margin-inline-start:-18px}
@@ -151,7 +156,7 @@ aside{transition:width .25s ease}
 .launch-btn{flex:1;min-width:190px;border-radius:24px;padding:11px 16px;background:#222;color:#fff;font-weight:600}.app.dark .launch-btn{background:#eee;color:#111}.launch-btn:hover{opacity:.88}
 .roots-panel{margin:10px 0 4px;padding:14px 16px;border-radius:18px;background:rgba(0,0,0,.04)}.app.dark .roots-panel{background:rgba(255,255,255,.05)}.roots-panel h3{margin:0;font-size:14px}.root-item{padding:10px 0}.root-item p{margin:2px 0}
 .project-checks{border:1px solid var(--border-strong,#d3d3d3);border-radius:14px;padding:8px 14px;margin:10px 0;display:flex;flex-wrap:wrap;gap:6px 18px}.project-checks legend{font-size:12px;color:var(--muted);padding:0 6px}.project-checks .muted{flex-basis:100%;font-size:12px}
-.git-facts{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;font-size:14px}.git-facts dt{color:var(--muted)}.git-facts dd{margin:0}code{font-family:"JetBrains Mono",Consolas,monospace;font-size:.92em;background:rgba(0,0,0,.07);padding:1px 5px;border-radius:5px}.app.dark code{background:rgba(255,255,255,.12)}
+.git-facts{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;font-size:14px}.git-facts dt{color:var(--muted)}.git-facts dd{margin:0}code{font-family:"Geist Mono",Consolas,monospace;font-size:.92em;background:rgba(0,0,0,.07);padding:1px 5px;border-radius:5px}.app.dark code{background:rgba(255,255,255,.12)}
 .proj-row .launch-row{margin:0}
 /* Settings, vault, connections, commands, automations */
 .settings-page{display:grid;gap:8px}.settings-group{padding:6px 0 14px;border-top:1px solid var(--border)}.settings-group:first-of-type{border-top:0}.settings-group h3{margin:14px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
@@ -337,4 +342,489 @@ input[type=checkbox]{transition:transform .12s}input[type=checkbox]:active{trans
 .star:active{transform:scale(1.35)}
 .save-status.saving::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;margin-inline-end:6px;animation:pulse 1s infinite}
 .page{scroll-behavior:smooth}
+
+/* A quieter, more consistent finish for the existing monochrome glass theme. */
+.app{--glass:rgba(255,255,255,.68);--glass-border:rgba(255,255,255,.82);--glass-shadow:0 8px 30px rgba(30,32,36,.07),0 1px 3px rgba(30,32,36,.04);--muted:#62646a}
+.app.dark{--glass:rgba(43,44,49,.72);--glass-border:rgba(255,255,255,.1);--glass-shadow:0 8px 30px rgba(0,0,0,.22),0 1px 3px rgba(0,0,0,.16);--muted:#b6b7bd}
+.app>aside{background:rgba(255,255,255,.78);border:1px solid rgba(255,255,255,.8);box-shadow:0 8px 28px rgba(30,32,36,.06)}
+.app.dark>aside{background:rgba(32,33,37,.88);border-color:rgba(255,255,255,.08)}
+.app>aside nav button{border-radius:13px;font-weight:500}
+.app>aside nav button.active{box-shadow:0 4px 12px rgba(0,0,0,.15)}
+header h1{letter-spacing:-.035em;font-weight:700}
+.eyebrow{letter-spacing:.035em;font-weight:500}
+.headerbuttons .round{border:1px solid rgba(255,255,255,.75);box-shadow:0 3px 10px rgba(0,0,0,.05)}
+.app.dark .headerbuttons .round{border-color:rgba(255,255,255,.1)}
+.card{border-radius:24px}
+.card:hover{box-shadow:0 12px 34px rgba(30,32,36,.1),0 1px 3px rgba(30,32,36,.04)}
+.app.dark .card:hover{box-shadow:0 12px 34px rgba(0,0,0,.28)}
+.card.collection:hover,.notes-editor:hover,.notes-list:hover,.notes-filters:hover,.proj-sticky:hover{box-shadow:var(--glass-shadow)}
+.chip{border:1px solid rgba(0,0,0,.04);font-weight:500}
+.app.dark .chip{border-color:rgba(255,255,255,.06)}
+.app button.link{box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.app button.link.tiny{box-shadow:none}
+.app button:focus-visible,.app select:focus-visible{outline:2px solid #555b66;outline-offset:2px}
+.app.dark button:focus-visible,.app.dark select:focus-visible{outline-color:#d0d2d8}
+.note-item.active{border-color:rgba(30,32,36,.15);box-shadow:0 4px 16px rgba(30,32,36,.07)}
+.app.dark .note-item.active{border-color:rgba(255,255,255,.18)}
+.settings-page .settings-group{break-inside:avoid;margin:0 0 16px;padding:16px;border:1px solid rgba(255,255,255,.8);border-radius:18px;background:rgba(255,255,255,.42);box-shadow:0 3px 12px rgba(30,32,36,.04)}
+.app.dark .settings-page .settings-group{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.08);box-shadow:none}
+.settings-page .settings-group h3{margin:0 0 8px;font-size:13px;letter-spacing:.02em}
+.settings-page .settings-group .item:first-of-type{border-top:0}
+.settings-page .item:last-child{padding-bottom:0}
+.app.dark .field select,.app.dark .template-pick select,.app.dark .proj-toolbar select,.app.dark .launch-box select{background:#303136;color:var(--text);border-color:rgba(255,255,255,.16)}
+
+/* Quick capture: keep the complete form and its actions visible together. */
+.dialog.capture-dialog{width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:24px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 16px;align-content:start;overflow-y:auto;background:rgba(250,250,250,.97)}
+.app.dark .dialog.capture-dialog{background:rgba(37,38,42,.98)}
+.capture-heading,.capture-title,.capture-details,.capture-actions,.capture-dialog>.error{grid-column:1/-1}
+.capture-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.capture-heading h2{margin:0;font-size:20px;letter-spacing:-.02em}
+.capture-heading p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.dialog .capture-close{flex:none;width:34px;height:34px;padding:0;border-radius:11px;background:rgba(0,0,0,.06);color:var(--text);font-size:22px;line-height:1}
+.app.dark .dialog .capture-close{background:rgba(255,255,255,.1)}
+.capture-dialog>label{display:grid;align-content:start;gap:6px;min-width:0;margin:0;font-size:13px;font-weight:600;color:var(--text)}
+.capture-dialog>label input,.capture-dialog>label select,.capture-dialog>label textarea{width:100%;min-width:0;margin:0;padding:10px 12px;border:1px solid var(--border);border-radius:11px;background:rgba(255,255,255,.8);color:var(--text);font-size:14px;font-weight:400}
+.app.dark .capture-dialog>label input,.app.dark .capture-dialog>label select,.app.dark .capture-dialog>label textarea{background:#303136;border-color:rgba(255,255,255,.14)}
+.capture-dialog>label input,.capture-dialog>label select{height:42px}
+.capture-dialog>label textarea{min-height:76px;height:76px;resize:vertical}
+.capture-dialog>.error{margin:0;padding:10px 12px;font-size:13px}
+.capture-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding-top:14px;border-top:1px solid var(--border)}
+.capture-actions span{margin-inline-end:auto;color:var(--muted);font-size:12px}
+.capture-actions button{min-width:90px;padding:10px 18px}
+.capture-actions .secondary{background:rgba(0,0,0,.06);color:var(--text)}
+.app.dark .capture-actions .secondary{background:rgba(255,255,255,.1)}
+@media(max-width:600px){.dialog.capture-dialog{grid-template-columns:repeat(2,minmax(0,1fr));padding:18px;gap:10px 12px}.capture-heading p{display:none}.capture-dialog>label textarea{min-height:58px;height:58px}.capture-actions{padding-top:10px}}
+@media(max-height:700px){.dialog.capture-dialog{padding:16px 20px;gap:9px 14px}.capture-heading p{display:none}.capture-dialog>label textarea{min-height:52px;height:52px}.capture-dialog>label input,.capture-dialog>label select{height:36px}.capture-actions{padding-top:8px}}
+
+/* Longer editing forms use the available width instead of stacking every field. */
+.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"]){width:min(900px,calc(100vw - 32px));max-height:calc(100vh - 32px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-content:start;gap:12px 16px;padding:24px;background:rgba(250,250,250,.97)}
+.app.dark .dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"]){background:rgba(37,38,42,.98)}
+.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"])>h2,
+.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"])>.error,
+.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"])>.row{grid-column:1/-1;margin:0}
+.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"])>.two-col{display:contents}
+.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"]) label:not(.inline-check){display:grid;align-content:start;gap:6px;min-width:0;margin:0;font-size:13px;font-weight:600}
+.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"]) label:not(.inline-check) :is(input,select,textarea){width:100%;min-width:0;margin:0;padding:9px 11px;border-radius:11px;font-size:14px;font-weight:400}
+.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"]) label:not(.inline-check) :is(input,select){height:40px}
+.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"]) textarea{min-height:68px;height:68px;resize:vertical}
+.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"])>label:has(textarea){grid-column:1/-1}
+.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"])>.row{justify-content:flex-end;padding-top:12px;border-top:1px solid var(--border)}
+.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"])>.inline-check{align-self:center;margin:0}
+.dialog[aria-label="Connection"]>.project-checks{grid-column:1/-1;max-height:110px;overflow:auto;margin:0}
+.dialog[aria-label="Command"]>button{align-self:end}
+.dialog[aria-label="Command"]>.muted{grid-column:span 2;align-self:center;margin:0;font-size:12px}
+.dialog[aria-label="End working session"]>label:last-of-type{grid-column:1/-1}
+.dialog[aria-label="Automation"]{width:min(900px,calc(100vw - 32px))}
+.dialog[aria-label="Automation"]>.item>div{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 14px}
+.dialog[aria-label="Automation"]>.item label{min-width:0;margin:0;font-size:13px}
+.dialog[aria-label="Automation"]>.item :is(input,select){min-width:0}
+
+/* Notes: keep the everyday path visible and reveal organization tools on demand. */
+.page>.notes-layout{grid-template-columns:200px 300px minmax(0,1fr);gap:14px}
+.notes-filters{gap:14px}
+.notes-disclosure{border-top:1px solid var(--border);padding-top:12px}
+.notes-disclosure summary,.note-templates summary,.note-more summary{cursor:pointer;list-style:none;font-size:13px;font-weight:600;color:var(--text)}
+.notes-disclosure summary::-webkit-details-marker,.note-templates summary::-webkit-details-marker,.note-more summary::-webkit-details-marker{display:none}
+.notes-disclosure summary::before,.note-templates summary::before,.note-more summary::before{content:'›';display:inline-block;margin-inline-end:8px;transition:transform .15s}
+.notes-disclosure[open]>summary::before,.note-templates[open]>summary::before,.note-more[open]>summary::before{transform:rotate(90deg)}
+.notes-disclosure .side-head{margin:14px 0 6px}
+.notes-disclosure .field:first-of-type{margin-top:12px}
+.disclosure-value{color:var(--muted);font-weight:400;overflow-wrap:anywhere}
+.notes-clear{align-self:flex-start}
+.notes-list-head{align-items:center}
+.notes-list .search{margin-bottom:10px}
+.notes-list .sort{margin-bottom:12px}
+.notes-list .empty-hint{margin:auto 0;padding:20px 8px;line-height:1.5}
+.notes-list .note-items:empty{flex:0}
+.note-empty{align-content:center;justify-items:center;gap:10px;max-width:720px;margin:auto}
+.note-empty h3{font-size:22px;letter-spacing:-.025em}
+.note-empty p{margin:0;max-width:360px}
+.note-empty-icon{display:grid;place-items:center;width:54px;height:54px;border-radius:18px;background:rgba(0,0,0,.06);font-size:26px}
+.app.dark .note-empty-icon{background:rgba(255,255,255,.09)}
+.note-empty-create{flex:none;margin-top:10px;min-width:160px}
+.note-templates{width:100%;margin-top:6px}
+.note-templates summary{display:inline-block;color:var(--muted);padding:8px 12px}
+.note-templates .tiles{margin:12px auto 0;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:8px}
+.note-templates .tile{padding:12px 14px;border-radius:14px}
+.note-more{position:relative}
+.note-more summary{padding:8px 12px;border:1px solid var(--border);border-radius:20px;background:rgba(255,255,255,.55)}
+.app.dark .note-more summary{background:rgba(255,255,255,.08)}
+.note-more-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.toolbar:has(.note-more[open]) .note-more{flex-basis:100%}
+html[data-narrow] .page>.notes-layout{grid-template-columns:200px minmax(0,1fr);grid-template-rows:auto auto;height:auto;align-content:start}
+html[data-narrow] .notes-layout>.notes-filters,html[data-narrow] .notes-layout>.notes-list{min-height:260px;max-height:45vh}
+html[data-narrow] .notes-layout>.notes-editor{min-height:420px}
+@media(max-width:700px){html[data-narrow] .page>.notes-layout{grid-template-columns:minmax(0,1fr)}html[data-narrow] .notes-editor{grid-column:auto}}
+@media(max-width:700px){.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"]){grid-template-columns:repeat(2,minmax(0,1fr));padding:18px;gap:10px 12px}}
+@media(max-width:420px){.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"]){grid-template-columns:minmax(0,1fr)}.dialog[aria-label="Command"]>.muted{grid-column:1/-1}}
+@media(max-height:700px){.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"]){padding:16px 20px;gap:8px 12px}.dialog:is([aria-label="Connection"],[aria-label="Command"],[aria-label="Credential"],[aria-label="Edit project"],[aria-label="End working session"],[aria-label="Workspace profile"]) textarea{min-height:50px;height:50px}}
+
+/* Calm desktop surfaces, shared across the workspace. */
+body{background:radial-gradient(ellipse at 15% 0%,#fafafa 0,transparent 55%),radial-gradient(ellipse at 90% 80%,#dedede 0,transparent 60%),#e9e9e9}
+body:has(.app.dark){background:radial-gradient(ellipse at 15% 0%,#343434 0,transparent 55%),radial-gradient(ellipse at 90% 80%,#252525 0,transparent 60%),#191919}
+.app{--accent:#282828;--glass:rgba(255,255,255,.76);--glass-border:rgba(55,55,55,.09);--glass-shadow:0 1px 2px rgba(35,35,35,.035),0 8px 24px rgba(35,35,35,.045);--muted:#6a6a6a;background:rgba(246,246,246,.53);border-color:rgba(255,255,255,.75);box-shadow:0 20px 55px rgba(40,40,40,.1);border-radius:24px}
+.app.dark{--accent:#d9d9d9;--glass:rgba(46,46,46,.8);--glass-border:rgba(255,255,255,.08);--glass-shadow:0 1px 2px rgba(0,0,0,.14),0 8px 24px rgba(0,0,0,.12);--muted:#b4b4b4;background:rgba(29,29,29,.76);border-color:rgba(255,255,255,.08)}
+.app>aside{width:190px;border-radius:18px;background:rgba(245,245,245,.72);border-color:rgba(255,255,255,.62);box-shadow:none}
+.app.dark>aside{background:rgba(44,44,44,.68);border-color:rgba(255,255,255,.06)}
+.app>aside img{width:96px;height:64px}
+.app>aside small{font-size:10px;font-weight:600;letter-spacing:.055em;color:var(--muted)}
+.app>aside nav{gap:3px}
+.app>aside nav button{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;font-size:13px}
+.app>aside nav button.active,.app.dark>aside nav button.active{background:rgba(40,40,40,.14);color:#292929;box-shadow:none}
+.app.dark>aside nav button.active{background:rgba(255,255,255,.17);color:#ededed}
+.app>aside .icon{width:20px;display:inline-flex;align-items:center;justify-content:center;flex:none;color:var(--accent)}
+.ui-icon{display:block;width:18px;height:18px;flex:none}
+.app>aside.collapsed{width:76px}
+.app>aside.collapsed nav button{justify-content:center}
+html[data-tiny] .app>aside{width:76px}
+html[data-tiny] .app>aside nav button{justify-content:center}
+header h1{font-weight:650;letter-spacing:-.03em}
+header .eyebrow{margin:0 0 4px;font-size:12px;letter-spacing:0}
+.headerbuttons{gap:6px;align-items:center}
+.headerbuttons>button:first-child{padding:10px 16px;border-radius:10px;background:#282828;color:white;font-weight:600}
+.app.dark .headerbuttons>button:first-child{background:#e4e4e4;color:#1b1b1b}
+.headerbuttons .round{display:grid;place-items:center;width:38px;min-width:38px;height:38px;padding:0;border-radius:10px;background:transparent;border-color:transparent;box-shadow:none}
+.headerbuttons .round:hover{background:rgba(60,60,60,.09)}
+.app.dark .headerbuttons .round{background:transparent;border-color:transparent}
+.app.dark .headerbuttons .round:hover{background:rgba(255,255,255,.1)}
+.headerbuttons .avatar{background:rgba(40,40,40,.12);color:#292929;font-size:13px}
+.app.dark .headerbuttons .avatar{background:rgba(255,255,255,.17);color:#ededed}
+.card{border-radius:18px;box-shadow:var(--glass-shadow)}
+.card:hover,.app.dark .card:hover{transform:none;box-shadow:var(--glass-shadow)}
+.app h2{font-weight:650;letter-spacing:-.015em}
+.app button.link{border-radius:9px;background:rgba(255,255,255,.5);border-color:rgba(55,55,55,.12);box-shadow:none}
+.app button.link:hover:not(:disabled){background:rgba(40,40,40,.1);border-color:rgba(40,40,40,.2);color:#292929}
+.app.dark button.link{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1)}
+.app.dark button.link:hover:not(:disabled){background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.2);color:#ededed}
+.app button.link.tiny,.app .goal-row button.link,.app .task-card button.link.dots{background:transparent;border:0}
+.dialog{border-radius:20px;box-shadow:0 18px 55px rgba(0,0,0,.18)}
+.seg,.tab,.filter-btn,.note-item,.fmt,.editor-text,.editor-preview{border-radius:11px}
+.seg button.active,.tab.active,.filter-btn.active{background:#282828;color:#fff}
+.app.dark .seg button.active,.app.dark .tab.active,.app.dark .filter-btn.active{background:#e4e4e4;color:#1b1b1b}
+.notes-disclosure summary,.note-templates summary,.note-more summary{border-radius:8px}
+.settings-page .settings-group{border-radius:14px;box-shadow:none}
+
+/* Dashboard: compact summaries and actionable empty states. */
+.b-overall{background:var(--glass);color:var(--text);border-color:var(--glass-border)}
+.b-overall .big{color:var(--text);font-weight:650;letter-spacing:-.04em}
+.b-overall .overall-numbers small{color:var(--muted);opacity:1;max-width:140px}
+.b-overall .metrics{gap:6px}
+.b-overall .metrics div{background:rgba(60,60,60,.06);color:var(--muted);border-radius:11px}
+.b-overall .metrics strong{color:var(--text);font-weight:650}
+.app.dark .b-overall .metrics div{background:rgba(255,255,255,.06)}
+.b-month .ring-svg{color:var(--accent)}
+.weekly .line.solid{stroke:var(--accent)}
+.weekly .today-dot{stroke:var(--accent)}
+.weekly .legend .dot.solid,.weekly .weekdays .today{background:var(--accent);color:#fff}
+.b-tasks,.b-projects{background:var(--glass);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);border-radius:18px;padding:18px 20px}
+.task-cards{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.task-card,.project-card{border-radius:13px;box-shadow:none;transform:none}
+.task-card{border:1px solid var(--border);background:rgba(255,255,255,.58)}
+.app.dark .task-card{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.09)}
+.task-card:hover,.project-card:hover,.proj-card:hover{transform:none}
+.task-card.add-task{border:1px dashed rgba(40,40,40,.4);background:rgba(40,40,40,.04);color:var(--accent)}
+.dashboard-empty{grid-column:1/-1;display:flex;align-items:center;gap:14px;min-width:0;padding:14px;border:1px solid var(--border);border-radius:13px;background:rgba(255,255,255,.32)}
+.app.dark .dashboard-empty{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.08)}
+.dashboard-empty-icon{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:11px;background:rgba(40,40,40,.1);color:var(--accent);font-size:19px}
+.dashboard-empty div{flex:1;min-width:0}
+.dashboard-empty strong{font-size:13px;font-weight:600}
+.dashboard-empty p{margin:3px 0 0;font-size:12px;color:var(--muted)}
+.dashboard-empty button{flex:none}
+.project-cards>.dashboard-empty{align-self:start}
+@media(max-width:700px){.dashboard-empty{flex-wrap:wrap}.dashboard-empty button{margin-inline-start:50px}}
+
+/* Monochrome finish: depth and hierarchy come from tone, not accent color. */
+.app{--accent:#303030;--text:#222;--muted:#6b6b6b;--border:#dedede;--glass-shadow:0 1px 2px rgba(0,0,0,.025),0 7px 24px rgba(0,0,0,.035)}
+.app.dark{--accent:#e0e0e0;--text:#f3f3f3;--muted:#b5b5b5;--border:#474747;--glass:rgba(45,45,45,.84)}
+.app>aside{background:rgba(247,247,247,.74)}
+.app.dark>aside{background:rgba(43,43,43,.76)}
+.app>aside nav button.active{background:rgba(0,0,0,.075);color:#222}
+.app.dark>aside nav button.active{background:rgba(255,255,255,.12);color:#f3f3f3}
+.app>aside .icon{color:#666}
+.app.dark>aside .icon{color:#bbb}
+.app>aside nav button.active .icon{color:inherit}
+.headerbuttons>button:first-child{background:#242424;box-shadow:0 2px 5px rgba(0,0,0,.1)}
+.app.dark .headerbuttons>button:first-child{background:#e9e9e9;color:#1c1c1c}
+.headerbuttons .avatar{background:rgba(0,0,0,.07);color:#333}
+.app.dark .headerbuttons .avatar{background:rgba(255,255,255,.1);color:#eee}
+.b-overall .metrics div{background:rgba(0,0,0,.035)}
+.app.dark .b-overall .metrics div{background:rgba(255,255,255,.06)}
+.b-overall .big{font-size:38px}
+.dashboard-empty{border-color:transparent;background:rgba(0,0,0,.025);padding:16px}
+.app.dark .dashboard-empty{border-color:transparent;background:rgba(255,255,255,.045)}
+.dashboard-empty-icon{background:rgba(0,0,0,.055);color:#555}
+.app.dark .dashboard-empty-icon{background:rgba(255,255,255,.09);color:#ddd}
+.weekly .weekdays .today{color:#fff}
+.app.dark .weekly .weekdays .today{color:#202020}
+.task-card.add-task{border-color:rgba(0,0,0,.25);background:rgba(0,0,0,.025)}
+.app.dark .task-card.add-task{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.035)}
+
+/* Refined desktop hierarchy: quieter chrome, crisp surfaces, and compact actions. */
+.app{--glass:rgba(255,255,255,.82);--glass-border:rgba(0,0,0,.055);--glass-shadow:0 1px 2px rgba(0,0,0,.025),0 12px 30px rgba(0,0,0,.035);gap:22px;padding:18px}
+.app.dark{--glass:rgba(46,46,46,.85);--glass-border:rgba(255,255,255,.07);--glass-shadow:0 1px 2px rgba(0,0,0,.16),0 12px 30px rgba(0,0,0,.1)}
+.app>aside{padding:14px 12px;border-radius:19px;background:rgba(244,244,244,.7)}
+.app.dark>aside{background:rgba(38,38,38,.7)}
+.app>aside img{margin:4px auto 16px}
+.app>aside small{display:block;padding:10px 10px 5px;font-size:10px;letter-spacing:.065em}
+.app>aside nav button{min-height:38px;font-size:13px;font-weight:500;transition:background-color .15s,color .15s}
+.app>aside nav button.active{font-weight:600;background:rgba(0,0,0,.065)}
+.app.dark>aside nav button.active{background:rgba(255,255,255,.11)}
+.app>aside .asidebottom small{padding:0;letter-spacing:0}
+.app>aside.collapsed small{display:none}
+header{margin:0 3px 18px}
+header h1{font-size:26px;line-height:1.15;font-weight:650;letter-spacing:-.04em}
+header .eyebrow{font-size:12px;color:var(--muted)}
+.headerbuttons>button:first-child{min-height:38px;border-radius:11px;padding:9px 16px;box-shadow:none}
+.headerbuttons .round{border-radius:11px}
+.headerbuttons>button:first-child{border-radius:18px}
+.headerbuttons .round{border-radius:16px}
+.card,.b-tasks,.b-projects{border-radius:20px}
+.card{background:var(--glass);border-color:var(--glass-border)}
+.app.dark .card{border-color:var(--glass-border)}
+.app h2{font-size:16px;line-height:1.3;font-weight:650;letter-spacing:-.02em}
+.page>.bento{gap:12px}
+.bento>.card,.bento>.b-tasks,.bento>.b-projects,.b-weekly>.card,.b-side .card{padding:20px 22px}
+.b-overall{background:linear-gradient(155deg,rgba(255,255,255,.96),rgba(245,245,245,.84));border-color:rgba(0,0,0,.055)}
+.app.dark .b-overall{background:linear-gradient(155deg,rgba(57,57,57,.95),rgba(43,43,43,.88));border-color:rgba(255,255,255,.07)}
+.overall-numbers{gap:32px}
+.b-overall .big{font-size:40px;line-height:1;font-weight:600;letter-spacing:-.055em}
+.b-overall .overall-numbers small{margin-top:7px;font-size:12px;line-height:1.3}
+.b-overall .metrics{gap:0;padding-top:12px;border-top:1px solid var(--border)}
+.b-overall .metrics div,.app.dark .b-overall .metrics div{background:transparent;border-radius:0;padding:3px 10px 2px;border-inline-start:1px solid var(--border)}
+.b-overall .metrics div:first-child{padding-inline-start:0;border-inline-start:0}
+.b-overall .metrics strong{font-size:19px;line-height:1.15}
+.b-month .ring-svg{max-height:150px}
+.b-month p{font-size:12px}
+.bento .row>h2{margin:0}
+.bento .row>button.link{padding:7px 11px;font-size:12px;border-color:transparent;background:rgba(0,0,0,.045)}
+.app.dark .bento .row>button.link{background:rgba(255,255,255,.075)}
+.bento .row>button.link:hover:not(:disabled){background:rgba(0,0,0,.09)}
+.app.dark .bento .row>button.link:hover:not(:disabled){background:rgba(255,255,255,.14)}
+.dashboard-empty,.app.dark .dashboard-empty{background:transparent;border:0;padding:12px 0}
+.dashboard-empty-icon{width:34px;height:34px;border-radius:11px;font-size:17px}
+.dashboard-empty strong{font-size:13px}
+.dashboard-empty p{line-height:1.4}
+.project-cards>.dashboard-empty{align-self:start}
+.b-tasks .task-cards:has(>.dashboard-empty){align-content:center}
+.b-tasks .task-cards:has(>.dashboard-empty)>.dashboard-empty{min-height:0}
+.task-card,.project-card{border-radius:15px}
+.goal-form input{border-radius:11px}
+.goal-form button{border-radius:11px}
+.app button.link{font-weight:500}
+.app :is(button,input,textarea,select,summary):focus-visible{outline:2px solid #686868;outline-offset:2px}
+.app.dark :is(button,input,textarea,select,summary):focus-visible{outline-color:#d0d0d0}
+.bento>*,.proj-card,.proj-row,.note-item,.item,.board-card,.tile,.settings-group,.scan-row,.root-item,.goal-row,.empty-card,.folders-summary,.chip{animation:none}
+.app.reduce-motion .page{scroll-behavior:auto}
+
+/* Rounded surfaces and controls throughout the workspace. */
+.app{border-radius:32px}
+.app.fullscreen{border-radius:0}
+.app>aside{border-radius:26px}
+.card,.b-tasks,.b-projects,.dialog,.popover{border-radius:24px}
+.settings-page .settings-group,.task-card,.project-card,.board-col,.board-card,.vault-page>article.item,.connections-page>article.item,.commands-page>article.item,.automations-page>article.item{border-radius:20px}
+.dashboard-empty,.dashboard-empty-icon,.tile,.note-templates .tile,.note-item,.editor-text,.editor-preview,.fmt,.roots-panel,.scan-panel,.folders-summary{border-radius:18px}
+.app>aside nav button,.app button.link,.headerbuttons .round,.headerbuttons>button:first-child,.capture-dialog input,.capture-dialog select,.capture-dialog textarea,.goal-form input,.goal-form button,.search,.dialog input,.dialog textarea,.dialog select,.collection select,.filters select,.field select,.template-pick select,.meta-row input,.meta-row select{border-radius:15px}
+.seg,.tab,.filter-btn,.chip,.new-note,.capture-actions button,.dialog button,.note-more summary{border-radius:18px}
+.app button.link.tiny,.app .goal-row button.link,.app .task-card button.link.dots,.dialog .capture-close{border-radius:12px}
+
+/* Workspace usability: keep navigation reachable and overflow discoverable. */
+.app>aside.collapsed .asidebottom{display:block;padding:12px 0}
+.app>aside.collapsed .aside-brand,html[data-tiny] .app>aside .aside-brand{display:none}
+.app>aside.collapsed .asidebottom nav,html[data-tiny] .app>aside .asidebottom nav{margin-bottom:0}
+.app>aside.collapsed .asidebottom nav button,html[data-tiny] .app>aside .asidebottom nav button{width:100%;justify-content:center}
+.app>aside.collapsed .asidebottom .icon,html[data-tiny] .app>aside .asidebottom .icon{margin:0}
+.app :is(.board,.note-items,.notes-filters,.notes-list,.notes-editor,.dialog,.project-checks,.app>aside){scrollbar-width:thin;scrollbar-color:rgba(120,120,120,.45) transparent}
+.app :is(.board,.note-items,.notes-filters,.notes-list,.notes-editor,.dialog,.project-checks)::-webkit-scrollbar,.app>aside::-webkit-scrollbar{display:block;width:7px;height:7px}
+.app :is(.board,.note-items,.notes-filters,.notes-list,.notes-editor,.dialog,.project-checks)::-webkit-scrollbar-thumb,.app>aside::-webkit-scrollbar-thumb{background:rgba(120,120,120,.45);border-radius:10px}
+.vault-page,.connections-page,.commands-page,.automations-page{grid-template-columns:repeat(auto-fill,minmax(min(440px,100%),1fr))}
+.proj-toolbar .search,.tasks-page .filters .search{min-width:min(200px,100%)}
+.collection-empty{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:16px 0;padding:22px;border:1px solid var(--border);border-radius:20px;color:var(--muted)}
+.collection-empty p{flex:1;margin:0}
+.empty-card .link{margin-top:8px}
+.app :is(button,select,input,textarea):disabled{cursor:not-allowed}
+@media(max-width:700px){.collection-empty{padding:16px}.proj-toolbar{align-items:stretch}.proj-toolbar .search{flex-basis:100%}}
+
+/* Subtle, consistent motion for feedback and newly opened surfaces. */
+@keyframes surface-arrive{from{opacity:0;transform:translateY(4px) scale(.992)}to{opacity:1;transform:none}}
+@keyframes feedback-arrive{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.overlay{animation:fade 160ms ease-out}
+.dialog,.popover{animation:surface-arrive 200ms cubic-bezier(.2,.7,.2,1)}
+.status-line,.error,.banner,[role=status]{animation:feedback-arrive 180ms ease-out}
+nav button.active{animation:none}
+.app button,.app summary{transition:background-color 160ms ease,border-color 160ms ease,color 160ms ease,box-shadow 160ms ease,transform 160ms cubic-bezier(.2,.7,.2,1)}
+.app button:active:not(:disabled){transform:scale(.98)}
+.app :is(input,select,textarea){transition:background-color 160ms ease,border-color 160ms ease,box-shadow 160ms ease}
+.app>aside{transition:width 220ms cubic-bezier(.2,.7,.2,1),background-color 180ms ease}
+.app :is(.card,.b-tasks,.b-projects,.task-card,.project-card,.board-card,.tile){transition:background-color 180ms ease,border-color 180ms ease,box-shadow 180ms ease}
+.app :is(.note-item,.filter-btn,.tab,.seg button){transition:background-color 160ms ease,color 160ms ease,border-color 160ms ease,box-shadow 160ms ease}
+.app .note-item:hover{transform:none}
+.app .tile:hover{transform:none;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.app.dark .tile:hover{box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.app .board-card:hover{transform:none}
+.app .ring-svg circle:nth-child(2){transition:stroke-dashoffset 500ms cubic-bezier(.2,.7,.2,1)}
+.app .notes-disclosure summary::before,.app .note-templates summary::before,.app .note-more summary::before{transition:transform 160ms ease}
+
+/* Motion is concentrated on content and feedback, keeping forms stable while typing. */
+@keyframes content-reveal{from{opacity:0}to{opacity:1}}
+@keyframes item-reveal{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes badge-reveal{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+@keyframes disclosure-reveal{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.page>section,.page>.bento,.page>.projects-page,.page>.project-detail{animation:content-reveal 220ms ease-out}
+.bento>*{animation:content-reveal 280ms ease-out backwards}
+.bento>:nth-child(2){animation-delay:30ms}.bento>:nth-child(3){animation-delay:60ms}.bento>:nth-child(4){animation-delay:90ms}.bento>:nth-child(5){animation-delay:120ms}.bento>:nth-child(6){animation-delay:150ms}.bento>:nth-child(7){animation-delay:180ms}
+.proj-grid>.proj-card,.proj-list>.proj-row,.note-items>li,.task-cards>.task-card,.project-cards>.project-card,.board-col>.board-card,.settings-page>.settings-group{animation:item-reveal 260ms cubic-bezier(.2,.7,.2,1) backwards}
+.proj-grid>:nth-child(2),.proj-list>:nth-child(2),.note-items>:nth-child(2),.task-cards>:nth-child(2),.project-cards>:nth-child(2){animation-delay:30ms}
+.proj-grid>:nth-child(3),.proj-list>:nth-child(3),.note-items>:nth-child(3),.task-cards>:nth-child(3),.project-cards>:nth-child(3){animation-delay:60ms}
+.proj-grid>:nth-child(4),.proj-list>:nth-child(4),.note-items>:nth-child(4),.task-cards>:nth-child(4){animation-delay:90ms}
+.proj-grid>:nth-child(n+5),.proj-list>:nth-child(n+5),.note-items>:nth-child(n+5){animation-delay:120ms}
+.chip,.badge{animation:badge-reveal 200ms ease-out}
+.notes-disclosure[open]>*:not(summary),.note-templates[open]>*:not(summary),.note-more[open]>*:not(summary){animation:disclosure-reveal 180ms ease-out}
+.app :is(.proj-card,.proj-row,.task-card,.project-card,.board-card,.tile){transition:transform 200ms cubic-bezier(.2,.7,.2,1),box-shadow 200ms ease,background-color 180ms ease,border-color 180ms ease}
+.app :is(.proj-card,.proj-row,.task-card,.project-card,.board-card,.tile):hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.09)}
+.app.dark :is(.proj-card,.proj-row,.task-card,.project-card,.board-card,.tile):hover{box-shadow:0 8px 24px rgba(0,0,0,.22)}
+.app .task-card.add-task:hover{transform:none}
+.app :is(.note-item,.filter-btn,.tab,.seg button):hover:not(:disabled){filter:brightness(.97)}
+.app.dark :is(.note-item,.filter-btn,.tab,.seg button):hover:not(:disabled){filter:brightness(1.12)}
+.app :is(.ui-icon,.icon){transition:transform 180ms cubic-bezier(.2,.7,.2,1),opacity 180ms ease}
+.app button:hover:not(:disabled)>.ui-icon,.app button:hover:not(:disabled)>.icon{transform:scale(1.07)}
+.app input[type=checkbox]{transition:transform 150ms ease,accent-color 150ms ease}
+.app input[type=checkbox]:active{transform:scale(.9)}
+.app .board-col{transition:background-color 180ms ease,outline-color 180ms ease}
+.app .board-card.dragging{opacity:.45;transform:scale(.98)}
+/* The compact sidebar keeps its logo, navigation, and expand control centered. */
+.app>aside.collapsed,html[data-tiny] .app>aside{width:92px;padding-inline:12px}
+.app>aside.collapsed>img,html[data-tiny] .app>aside>img{display:block;flex:none;width:64px;max-width:100%;height:52px;object-fit:contain;margin:4px auto 14px}
+.app>aside.collapsed>.collapse,html[data-tiny] .app>aside>.collapse{align-self:center;display:grid;place-items:center;width:36px;height:36px;flex:none;padding:0;border-radius:12px;line-height:1}
+.app>aside.collapsed nav button,html[data-tiny] .app>aside nav button{width:100%;min-height:42px;padding:8px;gap:0;justify-content:center}
+.app>aside.collapsed .icon,html[data-tiny] .app>aside .icon{width:20px;margin:0}
+
+/* Settings: one focused section at a time, with drafts retained between sections. */
+.page>.settings-page,html[data-narrow] .page>.settings-page,html[data-tiny] .page>.settings-page{display:block;column-count:auto;padding:24px;overflow:auto}
+.settings-intro{margin-bottom:22px}
+.settings-intro h2{margin:0;font-size:22px;letter-spacing:-.03em}
+.settings-intro p{margin:5px 0 0;color:var(--muted);font-size:13px}
+.settings-workspace{display:grid;grid-template-columns:210px minmax(0,1fr);gap:24px;align-items:start}
+.settings-nav{display:grid;gap:3px;position:sticky;top:0;padding:5px;border-radius:18px;background:rgba(0,0,0,.035)}
+.app.dark .settings-nav{background:rgba(255,255,255,.045)}
+.settings-nav button{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:13px;text-align:start;background:transparent;color:var(--text);font-size:13px}
+.settings-nav button span{color:var(--muted);font-size:17px;line-height:1}
+.settings-nav button.active,.app.dark .settings-nav button.active{background:var(--card);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.07);font-weight:600}
+.settings-content{min-width:0;max-width:1000px}
+.settings-page .settings-group{margin:0;padding:24px;border-radius:22px}
+.settings-page .settings-group[hidden]{display:none}
+.settings-page .settings-group>h3{margin:0 0 16px;font-size:19px;font-weight:650;letter-spacing:-.025em;text-transform:none;color:var(--text)}
+.settings-page .settings-group>.muted{margin:0 0 16px;line-height:1.5}
+.settings-page .item,.settings-page .toggle-row{padding:15px 0}
+.settings-page .item strong,.settings-page .toggle-row strong{font-size:14px;font-weight:600}
+.settings-page .item p,.settings-page .toggle-row small{line-height:1.45}
+.settings-page .item select,.settings-page .item input:not([type=checkbox]){min-height:38px}
+.settings-page .toggle-row{align-items:center;gap:14px}
+.settings-page .toggle-row input{flex:none;margin:0;accent-color:#333}
+.app.dark .settings-page .toggle-row input{accent-color:#ddd}
+.settings-page .status-line{margin:0 0 16px;padding:10px 14px;border-radius:13px;background:rgba(0,0,0,.05)}
+.app.dark .settings-page .status-line{background:rgba(255,255,255,.08)}
+.settings-page .about-row{align-items:flex-start;gap:18px}
+@media(max-width:800px){.page>.settings-page{padding:18px}.settings-workspace{grid-template-columns:minmax(0,1fr);gap:16px}.settings-nav{position:static;display:flex;overflow-x:auto;scrollbar-width:thin}.settings-nav button{width:auto;flex:none;white-space:nowrap}.settings-nav button span{display:none}.settings-page .settings-group{padding:18px}}
+
+/* Collection and project workflows: clear hierarchy and space for actions. */
+.collection-count{margin:2px 0;color:var(--muted);font-size:12px;font-weight:500}
+.page :is(.vault-page,.connections-page,.commands-page,.automations-page)>.row:first-child{gap:10px;justify-content:flex-start}
+.page :is(.vault-page,.connections-page,.commands-page,.automations-page)>.row:first-child h2{margin:0 auto 0 0}
+.page :is(.vault-page,.connections-page,.commands-page,.automations-page)>p.muted{max-width:100ch;margin:0;line-height:1.5}
+.page :is(.vault-page,.connections-page,.commands-page,.automations-page)>.proj-toolbar{margin:4px 0 0;padding:12px;border:1px solid var(--border);border-radius:18px;background:rgba(0,0,0,.025)}
+.app.dark .page :is(.vault-page,.connections-page,.commands-page,.automations-page)>.proj-toolbar{background:rgba(255,255,255,.035)}
+.page :is(.vault-page,.connections-page,.commands-page,.automations-page)>article.item{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:18px}
+.page :is(.vault-page,.connections-page,.commands-page,.automations-page)>article.item .actions{justify-content:flex-start;gap:7px;border-top:1px solid var(--border);padding-top:12px}
+.page :is(.vault-page,.connections-page,.commands-page,.automations-page)>article.item :is(pre,p){max-width:100%;overflow-wrap:anywhere}
+.page :is(.vault-page,.connections-page,.commands-page,.automations-page)>article.item pre{white-space:pre-wrap;overflow:auto}
+.project-detail .detail-head{gap:14px}
+.project-detail .detail-head>.link{justify-self:start}
+.project-more{flex-basis:auto;min-width:0}
+.project-more summary{list-style:none;cursor:pointer;border:1px solid var(--border);border-radius:15px;padding:8px 13px;font-size:13px;font-weight:500}
+.project-more summary::-webkit-details-marker{display:none}
+.project-more summary::before{content:'›';display:inline-block;margin-inline-end:7px;transition:transform 160ms ease}
+.project-more[open]{flex-basis:100%}
+.project-more[open] summary::before{transform:rotate(90deg)}
+.project-more-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.project-detail .tabs,.tasks-page .tabs{gap:5px;padding:5px;border-radius:18px;background:rgba(0,0,0,.035)}
+.app.dark :is(.project-detail,.tasks-page) .tabs{background:rgba(255,255,255,.045)}
+.project-detail .tabs .tab,.tasks-page .tabs .tab{padding:8px 13px}
+.task-row{gap:10px 14px;padding:16px 0;align-items:center}
+.task-row>div:first-of-type{min-width:min(240px,100%)}
+.task-row p{margin:4px 0}
+.tasks-page .filters{padding:12px;border:1px solid var(--border);border-radius:18px;background:rgba(0,0,0,.025)}
+.app.dark .tasks-page .filters{background:rgba(255,255,255,.035)}
+.notes-editor .banner{font-size:12px;line-height:1.4}
+.notes-list-head .new-note{min-width:0}
+@media(max-width:700px){.page :is(.vault-page,.connections-page,.commands-page,.automations-page)>.row:first-child h2{flex-basis:100%}.task-row>div:first-of-type{flex-basis:100%}.project-detail .tabs,.tasks-page .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}.project-detail .tabs .tab,.tasks-page .tabs .tab{flex:none}}
+
+/* Give connection filters room for their values and use the available page height. */
+.page>.connections-page{flex:1;min-height:0;overflow:auto;align-content:start}
+.connections-page>.proj-toolbar label:not(.inline-check){flex:0 1 150px;min-width:120px}
+.connections-page>.proj-toolbar label select{width:100%;min-width:0}
+.connections-page>.proj-toolbar .search{flex:1 1 260px}
+.connections-page>.collection-empty{margin:4px 0}
+@media(max-width:700px){.connections-page>.proj-toolbar label:not(.inline-check){flex:1 1 120px}.connections-page>.proj-toolbar .search{flex-basis:100%}}
+
+/* Monochrome glass: a distinct sidebar and softly layered surfaces. */
+.app>aside{background:linear-gradient(155deg,rgba(229,229,229,.82),rgba(218,218,218,.65));border:1px solid rgba(255,255,255,.7);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 8px 24px rgba(0,0,0,.035);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+.app.dark>aside{background:linear-gradient(155deg,rgba(65,65,65,.85),rgba(45,45,45,.78));border-color:rgba(255,255,255,.09);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 24px rgba(0,0,0,.14)}
+.app.dark>aside>img{background:rgba(255,255,255,.94);border:1px solid rgba(255,255,255,.65);border-radius:15px;padding:6px;box-shadow:0 3px 12px rgba(0,0,0,.12)}
+.app.dark>aside.collapsed>img,html[data-tiny] .app.dark>aside>img{padding:4px;border-radius:12px}
+.app>aside nav button.active{background:rgba(255,255,255,.58);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 2px 7px rgba(0,0,0,.045)}
+.app.dark>aside nav button.active{background:rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+.app .card:not(.contrast):not(.project-card),.app :is(.b-tasks,.b-projects){background-color:rgba(255,255,255,.65);border-color:rgba(255,255,255,.7);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 8px 24px rgba(0,0,0,.04);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.app.dark .card:not(.contrast):not(.project-card),.app.dark :is(.b-tasks,.b-projects){background-color:rgba(48,48,48,.7);border-color:rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 8px 24px rgba(0,0,0,.15)}
+.app :is(.proj-sticky,.settings-nav,.folders-summary,.fmt,.tasks-page .filters){background-color:rgba(245,245,245,.62);border-color:rgba(255,255,255,.6);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.app.dark :is(.proj-sticky,.settings-nav,.folders-summary,.fmt,.tasks-page .filters){background-color:rgba(55,55,55,.65);border-color:rgba(255,255,255,.08)}
+.app :is(.headerbuttons .round,.seg,.chip,.note-item.active){box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+.app.dark :is(.headerbuttons .round,.seg,.chip,.note-item.active){box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+@media(prefers-reduced-transparency:reduce){.app>aside,.app .card,.app :is(.b-tasks,.b-projects,.proj-sticky,.settings-nav,.folders-summary,.fmt,.tasks-page .filters){backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--card)}.app>aside{background:var(--soft)}}
+
+/* Dashboard: a clear overview and useful, compact empty states. */
+.page>.bento{gap:14px;grid-template-rows:minmax(220px,1.08fr) minmax(200px,1fr) minmax(190px,.92fr);overflow:auto;align-content:stretch}
+.bento>.card,.bento>.b-tasks,.bento>.b-projects,.b-weekly>.card,.b-side .card{padding:22px 24px}
+.dashboard-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.dashboard-heading h2{margin:0}
+.dashboard-heading p{margin:5px 0 0;color:var(--muted);font-size:12px}
+.dashboard-mark,.dashboard-placeholder>span{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:13px;background:rgba(0,0,0,.045);color:var(--muted);font-size:18px}
+.app.dark :is(.dashboard-mark,.dashboard-placeholder>span){background:rgba(255,255,255,.08)}
+.overall-numbers{gap:clamp(24px,5vw,64px)}
+.b-overall .big{font-size:clamp(32px,3vw,44px);font-variant-numeric:tabular-nums}
+.b-overall .metrics strong{font-variant-numeric:tabular-nums}
+.bento h2{font-size:15px}
+.dashboard-count{display:inline-grid;place-items:center;min-width:24px;height:24px;margin-inline-start:5px;padding:0 7px;border-radius:9px;background:rgba(0,0,0,.05);color:var(--muted);font-size:11px;font-weight:600;vertical-align:middle}
+.app.dark .dashboard-count{background:rgba(255,255,255,.09)}
+.dashboard-placeholder{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--text)}
+.dashboard-placeholder strong,.dashboard-notes strong{font-size:13px;font-weight:600}
+.dashboard-placeholder p{margin:4px 0 0;color:var(--muted);font-size:12px}
+.weekly-empty{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:7px;padding:10px;color:var(--text)}
+.weekly-empty>span{display:grid;place-items:center;width:40px;height:40px;border-radius:14px;background:rgba(0,0,0,.045);color:var(--muted);font-size:22px}
+.app.dark .weekly-empty>span{background:rgba(255,255,255,.08)}
+.weekly-empty strong{font-size:13px;font-weight:600}
+.weekly-empty p{max-width:260px;margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+.b-month .ring-svg{max-height:140px}
+.b-tasks .dashboard-empty,.b-projects .dashboard-empty{gap:14px}
+.bento .dashboard-empty-icon{border-radius:13px}
+.bento .goal-form{gap:8px}
+.bento .goal-form input{min-width:0}
+.dashboard-notes{display:grid;gap:4px;margin-top:12px}
+.dashboard-note{display:flex;align-items:center;gap:11px;width:100%;min-width:0;padding:9px;border-radius:14px;background:transparent;color:var(--text);text-align:start}
+.dashboard-note:hover{background:rgba(0,0,0,.045)}
+.app.dark .dashboard-note:hover{background:rgba(255,255,255,.07)}
+.dashboard-note-icon{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:11px;background:rgba(0,0,0,.05);color:var(--muted)}
+.app.dark .dashboard-note-icon{background:rgba(255,255,255,.08)}
+.dashboard-note>span:nth-child(2){display:grid;gap:2px;flex:1;min-width:0}
+.dashboard-note strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dashboard-note small,.dashboard-note>span:last-child{color:var(--muted)}
+html[data-narrow] .page>.bento{grid-template-rows:none}
+@media(max-width:700px){html[data-narrow] .page>.bento{grid-template-columns:1fr}html[data-narrow] .bento>*{grid-column:1/-1}.bento>.card,.bento>.b-tasks,.bento>.b-projects,.b-weekly>.card,.b-side .card{padding:18px}}
+
+/* Shared frosted-glass treatment for dialogs and floating menus. */
+.app .overlay{background:rgba(0,0,0,.22);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.app .dialog:is(.dialog){background:rgba(250,250,250,.82);color:#222;border:1px solid rgba(255,255,255,.72);backdrop-filter:blur(32px) saturate(1.15);-webkit-backdrop-filter:blur(32px) saturate(1.15);box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 22px 70px rgba(0,0,0,.2)}
+.app.dark .dialog:is(.dialog){background:rgba(38,38,40,.86);color:#f3f3f3;border-color:rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 22px 70px rgba(0,0,0,.4)}
+.app .popover{background:rgba(34,34,36,.87);color:#f5f5f5;border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 14px 38px rgba(0,0,0,.25)}
+@media(prefers-reduced-transparency:reduce){.app .overlay{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(0,0,0,.4)}.app .dialog:is(.dialog){background:#fafafa;backdrop-filter:none;-webkit-backdrop-filter:none}.app.dark .dialog:is(.dialog){background:#262628}.app .popover{background:#222224;backdrop-filter:none;-webkit-backdrop-filter:none}}
+.app.reduce-motion *,.app.reduce-motion *::before,.app.reduce-motion *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}

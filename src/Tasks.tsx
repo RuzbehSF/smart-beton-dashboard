@@ -9,7 +9,7 @@ const RANK: Record<string, number> = {high: 0, normal: 1, low: 2};
 
 export function Tasks(p:Props) {
   const [view, setView] = useState<TaskView>('all'), [query, setQuery] = useState(p.initialQuery), [priority, setPriority] = useState('all'), [project, setProject] = useState('all'), [trash, setTrash] = useState(false), [open, setOpen] = useState<number|null>(null), [newItem, setNewItem] = useState(''), [dragging, setDragging] = useState<number|null>(null), [dropTarget, setDropTarget] = useState<string|null>(null);
-  async function run(command:string, args:Record<string, unknown>) { try { await invoke(command, args); p.onChanged(); } catch (e) { p.onError(String(e)); } }
+  async function run(command:string, args:Record<string, unknown>) { try { await invoke(command, args); p.onChanged(); return true; } catch (e) { p.onError(String(e)); return false; } }
   const projectName = (id?:number|null) => p.projects.find(x => x.id === id)?.name;
 
   const base = p.items.filter(x => x.kind === 'task' && !!x.deleted === trash);
@@ -27,7 +27,7 @@ export function Tasks(p:Props) {
     return <div className="checklist">
       {subs.map((s, i) => <div className="goal-row" key={i}><label><input type="checkbox" checked={s.done} onChange={() => save(subs.map((y, j) => j === i ? {...y, done: !y.done} : y))}/><span className={s.done ? 'struck' : ''}>{s.title}</span></label><button className="link tiny" aria-label={`Remove ${s.title}`} onClick={() => save(subs.filter((_, j) => j !== i))}>✕</button></div>)}
       {!subs.length && <p className="muted">No checklist items yet.</p>}
-      <form className="goal-form" onSubmit={e => { e.preventDefault(); if (!newItem.trim()) return; save([...subs, {title: newItem.trim(), done: false}]); setNewItem(''); }}><input aria-label="New checklist item" placeholder="Add checklist item" value={newItem} onChange={e => setNewItem(e.target.value)}/><button disabled={!newItem.trim()}>Add</button></form>
+      <form className="goal-form" onSubmit={async e => { e.preventDefault(); const title = newItem.trim(); if (!title) return; if (await save([...subs, {title, done: false}])) setNewItem(value => value.trim() === title ? '' : value); }}><input aria-label="New checklist item" placeholder="Add checklist item" value={newItem} onChange={e => setNewItem(e.target.value)}/><button disabled={!newItem.trim()}>Add</button></form>
     </div>;
   }
   function meta(x:Item) {
@@ -62,9 +62,9 @@ export function Tasks(p:Props) {
     })}</div>;
   }
   function grouped() {
-    const groups = new Map<string, Item[]>();
-    for (const x of list) { const name = projectName(x.project_id) ?? 'No project'; groups.set(name, [...(groups.get(name) ?? []), x]); }
-    return [...groups.entries()].sort(([a], [b]) => a === 'No project' ? 1 : b === 'No project' ? -1 : a.localeCompare(b)).map(([name, tasks]) => <div key={name}><h3 className="group-title">{name} <span className="count">{tasks.length}</span></h3>{tasks.map(row)}</div>);
+    const groups = new Map<number|null, Item[]>();
+    for (const x of list) { const id = x.project_id ?? null; groups.set(id, [...(groups.get(id) ?? []), x]); }
+    return [...groups.entries()].sort(([a], [b]) => a === null ? 1 : b === null ? -1 : (projectName(a) ?? '').localeCompare(projectName(b) ?? '')).map(([id, tasks]) => <div key={id ?? 'none'}><h3 className="group-title">{id === null ? 'No project' : projectName(id) ?? 'Unknown project'} <span className="count">{tasks.length}</span></h3>{tasks.map(row)}</div>);
   }
 
   return <section className="card collection tasks-page">
@@ -75,8 +75,9 @@ export function Tasks(p:Props) {
       <label>Priority<select value={priority} onChange={e => setPriority(e.target.value)}><option value="all">All</option><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option></select></label>
       <label>Project<select value={project} onChange={e => setProject(e.target.value)}><option value="all">All</option>{p.projects.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
       <button className="link" aria-pressed={trash} onClick={() => setTrash(!trash)}>{trash ? 'Show active' : 'Show trash'}</button>
+      {(query || priority !== 'all' || project !== 'all') && <button className="link" onClick={() => {setQuery(''); setPriority('all'); setProject('all');}}>Clear filters</button>}
     </div>
     {!trash && view === 'board' ? board() : !trash && view === 'project' ? grouped() : list.map(row)}
-    {!list.length && <p className="muted">{trash ? 'Trash is empty.' : 'No matching tasks.'}</p>}
+    {!list.length && <div className="collection-empty"><p>{trash ? 'Trash is empty.' : query || priority !== 'all' || project !== 'all' || view !== 'all' ? 'No tasks match this view.' : 'No tasks yet.'}</p>{!trash && view !== 'board' && <button className="link" onClick={p.onCreate}>＋ Add task</button>}</div>}
   </section>;
 }

@@ -1,3 +1,4 @@
+import {createPortal} from 'react-dom';
 import React, {useEffect, useRef, useState} from 'react';
 import {invoke} from './native';
 
@@ -97,9 +98,9 @@ export function Automations({projects, onChanged, onShowNotes, autoRunId, onAuto
         <button className="link" disabled={running} onClick={() => {setError(''); setForm(item);}}>Edit</button>
         <button className="link" disabled={running} onClick={() => remove(item.id!)}>Delete</button></div>
     </article>)}
-    {!items.length && <p className="muted">No automations yet. Add one or start from a template.</p>}
+    {!items.length && <div className="collection-empty"><p>No automations yet. Start with a template or create your own.</p><button className="link" disabled={running} onClick={() => {setError(''); setForm(blank());}}>Add automation</button></div>}
 
-    {form && <div className="overlay"><form className="dialog wide-dialog" role="dialog" aria-modal="true" aria-label="Automation" onSubmit={save}>
+    {form && createPortal(<div className="overlay"><form className="dialog wide-dialog" role="dialog" aria-modal="true" aria-label="Automation" onSubmit={save}>
       <h2>Automation</h2>
       {error && <p className="error" role="alert">{error}</p>}
       {!form.id && !form.actions.length && <div className="templates"><span className="muted">Start from a template (choose the projects afterwards):</span>{TEMPLATES.map(([name, steps]) => <button type="button" className="link" key={name} onClick={() => setForm({...form, name: form.name || name, actions: steps.map(s => ({...s}))})}>{name}</button>)}</div>}
@@ -122,6 +123,6 @@ export function Automations({projects, onChanged, onShowNotes, autoRunId, onAuto
         <button type="button" className="link" onClick={() => setForm({...form, actions: form.actions.filter((_, j) => j !== i)})}>Remove</button></div>)}
       <button type="button" disabled={form.actions.length >= 20} onClick={() => setForm({...form, actions: [...form.actions, newStep('create_task')]})}>Add action</button>
       <div className="row"><button type="button" className="secondary" onClick={() => {setForm(null); setError('');}}>Cancel</button><button disabled={!form.actions.length}>Save</button></div>
-    </form></div>}
+    </form></div>, document.querySelector('.app') ?? document.body)}
   </section>;
 }
