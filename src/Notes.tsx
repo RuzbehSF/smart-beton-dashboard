@@ -78,7 +78,7 @@ export function Notes(p:Props) {
     setScope(scope === 'trash' || scope === 'archived' ? 'all' : scope);
   }
   async function run(command:string, args:Record<string, unknown>) { try { await invoke(command, args); p.onChanged(); return true; } catch (e) { p.onError(String(e)); return false; } }
-  async function addCategory(e:React.FormEvent) { e.preventDefault(); if (!newCategory.trim()) return; if (await run('create_category', {name: newCategory})) { setNewCategory(''); loadCategories(); } }
+  async function addCategory(e:React.FormEvent) { e.preventDefault(); if (!newCategory.trim()) return; if (await run('create_category', {name: newCategory})) { setNewCategory(''); setAddingCategory(false); loadCategories(); } }
   async function renameCategory(c:Category) { const name = window.prompt('Rename category', c.name); if (!name || name.trim() === c.name) return; if (await run('rename_category', {id: c.id, name})) { if (category === c.name) setCategory(name.trim()); if (draftRef.current.category === c.name) { draftRef.current = {...draftRef.current, category: name.trim()}; setDraft(draftRef.current); } loadCategories(); } }
   async function removeCategory(c:Category) { if (!window.confirm(`Delete the category "${c.name}"? Its notes are kept and move to the idea inbox.`)) return; if (await run('delete_category', {id: c.id})) { if (category === c.name) setCategory(''); loadCategories(); } }
 
@@ -111,7 +111,7 @@ export function Notes(p:Props) {
       <nav className="collections" aria-label="Note collections">{SCOPES.map(([id, label]) => <button key={id} className={scope === id ? 'filter-btn active' : 'filter-btn'} aria-pressed={scope === id} onClick={() => setScope(id)}>{label}<span className="count">{count(id)}</span></button>)}</nav>
       <div className="side-section">
         <div className="side-head"><h3>Categories</h3><button className="link tiny" aria-label="Add category" aria-expanded={addingCategory} onClick={() => setAddingCategory(v => !v)}>{addingCategory ? '−' : '＋'}</button></div>
-        {addingCategory && <form className="goal-form" onSubmit={async e => { await addCategory(e); setAddingCategory(false); }}><input aria-label="New category" placeholder="Category name" autoFocus value={newCategory} onChange={e => setNewCategory(e.target.value)}/><button disabled={!newCategory.trim()}>Add</button></form>}
+        {addingCategory && <form className="goal-form" onSubmit={addCategory}><input aria-label="New category" placeholder="Category name" autoFocus value={newCategory} onChange={e => setNewCategory(e.target.value)}/><button disabled={!newCategory.trim()}>Add</button></form>}
         <div className="filter-list"><button className={category === '' ? 'filter-btn active' : 'filter-btn'} onClick={() => setCategory('')}>Any category</button>
           {categories.map(c => <div className="cat-row" key={c.id}><button className={category === c.name ? 'filter-btn active' : 'filter-btn'} onClick={() => setCategory(category === c.name ? '' : c.name)}>{c.name}</button><span className="cat-actions"><button className="link tiny" aria-label={`Rename ${c.name}`} onClick={() => renameCategory(c)}>✎</button><button className="link tiny" aria-label={`Delete ${c.name}`} onClick={() => removeCategory(c)}>✕</button></span></div>)}</div>
       </div>

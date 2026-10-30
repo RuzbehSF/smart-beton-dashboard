@@ -8,12 +8,15 @@ export function wrapSelection(text: string, start: number, end: number, before: 
     const inner = selected.slice(before.length, selected.length - after.length);
     return {text: text.slice(0, start) + inner + text.slice(end), start, end: start + inner.length};
   }
+  if (selected && start >= before.length && text.slice(start - before.length, start) === before && text.slice(end, end + after.length) === after) {
+    return {text: text.slice(0, start - before.length) + selected + text.slice(end + after.length), start: start - before.length, end: end - before.length};
+  }
   const body = selected || placeholder;
   return {text: text.slice(0, start) + before + body + after + text.slice(end), start: start + before.length, end: start + before.length + body.length};
 }
 
 function lineRange(text: string, start: number, end: number): [number, number] {
-  const from = text.lastIndexOf('\n', start - 1) + 1;
+  const from = start === 0 ? 0 : text.lastIndexOf('\n', start - 1) + 1;
   const stop = text.indexOf('\n', end > start ? end - 1 : end);
   return [from, stop === -1 ? text.length : stop];
 }

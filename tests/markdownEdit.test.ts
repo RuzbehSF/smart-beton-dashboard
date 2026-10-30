@@ -6,8 +6,17 @@ test('bold wraps the selection and unwraps it again', () => {
   const wrapped = wrapSelection('say hello now', 4, 9, '**');
   assert.equal(wrapped.text, 'say **hello** now');
   assert.equal(wrapped.text.slice(wrapped.start, wrapped.end), 'hello');
-  const again = wrapSelection(wrapped.text, 4, 13, '**');
+  const again = wrapSelection(wrapped.text, wrapped.start, wrapped.end, '**');
   assert.equal(again.text, 'say hello now');
+  assert.equal(again.text.slice(again.start, again.end), 'hello');
+  assert.equal(wrapSelection('say **hello** now', 4, 13, '**').text, 'say hello now');
+});
+test('italic and code toggle using the selection returned by the first edit', () => {
+  for (const marker of ['*', '`']) {
+    const on = wrapSelection('hello', 0, 5, marker);
+    const off = wrapSelection(on.text, on.start, on.end, marker);
+    assert.equal(off.text, 'hello');
+  }
 });
 test('an empty selection gets a placeholder that is selected', () => {
   const edit = wrapSelection('ab', 1, 1, '*');
@@ -25,6 +34,10 @@ test('numbering counts from one and toggles off', () => {
   const on = numberLines('a\nb\nc', 0, 5);
   assert.equal(on.text, '1. a\n2. b\n3. c');
   assert.equal(numberLines(on.text, 0, on.text.length).text, 'a\nb\nc');
+});
+test('formatting an empty first line does not duplicate the newline', () => {
+  assert.equal(prefixLines('\nnext', 0, 0, '> ').text, '> \nnext');
+  assert.equal(numberLines('\nnext', 0, 0).text, '1. \nnext');
 });
 test('links select the address so it can be typed over', () => {
   const edit = linkSelection('see docs', 4, 8);
