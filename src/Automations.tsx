@@ -98,7 +98,7 @@ export function Automations({projects, onChanged, onShowNotes, autoRunId, onAuto
         <button className="link" disabled={running} onClick={() => {setError(''); setForm(item);}}>Edit</button>
         <button className="link" disabled={running} onClick={() => remove(item.id!)}>Delete</button></div>
     </article>)}
-    {!items.length && <div className="collection-empty"><p>No automations yet. Start with a template or create your own.</p><button className="link" disabled={running} onClick={() => {setError(''); setForm(blank());}}>Add automation</button></div>}
+    {!items.length && <div className="collection-empty"><p>No automations yet. Start with a template or create your own.</p><button className="link" disabled={running} onClick={() => {setError(''); setForm(blank());}}>Create automation</button></div>}
 
     {form && createPortal(<div className="overlay"><form className="dialog wide-dialog" role="dialog" aria-modal="true" aria-label="Automation" onSubmit={save}>
       <h2>Automation</h2>

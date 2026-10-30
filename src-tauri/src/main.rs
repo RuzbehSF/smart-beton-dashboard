@@ -39,6 +39,18 @@ fn toggle_task(app: tauri::AppHandle, id: i64) -> Result<(), String> {
     tx.execute("INSERT INTO task_events(task_id,kind) SELECT id,'completed' FROM items WHERE id=?1 AND done=1", [id]).map_err(|e| e.to_string())?;
     tx.commit().map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+fn set_task_due_date(app: tauri::AppHandle, id: i64, due_date: Option<String>) -> Result<(), String> {
+    let db = database(&app)?;
+    if let Some(ref date) = due_date {
+        if !valid_due_date(&db, date)? { return Err("Invalid due date".into()); }
+    }
+    let n = db.execute("UPDATE items SET due_date=?1,updated_at=CURRENT_TIMESTAMP WHERE id=?2 AND kind='task' AND deleted=0", rusqlite::params![due_date, id]).map_err(|e| e.to_string())?;
+    if n == 0 { return Err("Task no longer exists".into()); }
+    Ok(())
+}
+
 #[tauri::command]
 fn delete_item(app: tauri::AppHandle, id: i64) -> Result<(), String> {
     database(&app)?.execute("UPDATE items SET deleted=1 WHERE id=?1", [id]).map_err(|e| e.to_string())?; Ok(())
@@ -515,8 +527,8 @@ fn save_connection(app: tauri::AppHandle, item: ConnectionRecord) -> Result<(), 
     tx.commit().map_err(|e| e.to_string())
 }
 #[derive(Serialize)]
-struct ConnectionCheck { reachable: bool, message: String }
-/// Optional, user-triggered TCP reachability test (no data is sent). Never runs automatically.
+struct ConnectionCheck { reachable: bool, message: String, latency_ms: Option<u64> }
+/// Lightweight TCP reachability test with round-trip latency measurement.
 #[tauri::command]
 async fn check_connection(app: tauri::AppHandle, id: i64) -> Result<ConnectionCheck, String> {
     let (kind, address, port): (String, String, Option<u16>) = database(&app)?.query_row("SELECT kind,address,port FROM connections WHERE id=?1", [id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).map_err(|e| e.to_string())?;
@@ -528,11 +540,79 @@ async fn check_connection(app: tauri::AppHandle, id: i64) -> Result<ConnectionCh
             _ => { let host = security::validate_hostname_or_ip(&address)?; let host = host.trim_matches(|c| c == '[' || c == ']').to_string(); let target = port.or(match kind.as_str() { "ssh" => Some(22), "rdp" => Some(3389), _ => None }).ok_or("Add a port to test this connection")?; (host, target) }
         };
         let socket = (host.as_str(), target).to_socket_addrs().map_err(|_| "The host name could not be resolved".to_string())?.next().ok_or("The host name could not be resolved")?;
+        let start = std::time::Instant::now();
         Ok(match TcpStream::connect_timeout(&socket, std::time::Duration::from_secs(3)) {
-            Ok(_) => ConnectionCheck { reachable: true, message: format!("{host}:{target} accepted a TCP connection") },
-            Err(e) => ConnectionCheck { reachable: false, message: format!("{host}:{target} did not respond ({e})") },
+            Ok(_) => {
+                let ms = start.elapsed().as_millis() as u64;
+                ConnectionCheck { reachable: true, message: format!("{host}:{target} responded in {ms}ms"), latency_ms: Some(ms) }
+            },
+            Err(e) => ConnectionCheck { reachable: false, message: format!("{host}:{target} did not respond ({e})"), latency_ms: None },
         })
     }).await.map_err(|e| e.to_string())?
+}
+
+/// Tests reachability of an arbitrary TCP port on a target host.
+#[tauri::command]
+async fn check_port(host: String, port: u16) -> Result<ConnectionCheck, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        use std::net::{TcpStream, ToSocketAddrs};
+        let trimmed_host = host.trim().trim_matches(|c| c == '[' || c == ']');
+        if trimmed_host.is_empty() { return Err("Host address is required".into()); }
+        let valid_host = security::validate_hostname_or_ip(trimmed_host)?;
+        let socket = (valid_host.as_str(), port).to_socket_addrs().map_err(|e| format!("Could not resolve {valid_host}: {e}"))?.next().ok_or("The host name could not be resolved")?;
+        let start = std::time::Instant::now();
+        Ok(match TcpStream::connect_timeout(&socket, std::time::Duration::from_secs(3)) {
+            Ok(_) => {
+                let ms = start.elapsed().as_millis() as u64;
+                ConnectionCheck { reachable: true, message: format!("Port {port} on {valid_host} is OPEN ({ms}ms)"), latency_ms: Some(ms) }
+            },
+            Err(e) => ConnectionCheck { reachable: false, message: format!("Port {port} on {valid_host} is closed or unreachable ({e})"), latency_ms: None },
+        })
+    }).await.map_err(|e| e.to_string())?
+}
+
+/// Executes a single remote command via OpenSSH client and returns a streaming job id.
+#[tauri::command]
+fn run_ssh_command(app: tauri::AppHandle, id: i64, command: String) -> Result<String, String> {
+    let (kind, address, port, username): (String, String, Option<u16>, String) = database(&app)?
+        .query_row("SELECT kind,address,port,username FROM connections WHERE id=?1", [id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))
+        .map_err(|e| e.to_string())?;
+    if kind != "ssh" { return Err("Only SSH connections support quick terminal command execution".into()); }
+    let trimmed = command.trim();
+    if trimmed.is_empty() { return Err("Command cannot be empty".into()); }
+    #[cfg(windows)] {
+        let exe = platform::openssh_exe()?;
+        let mut args = security::ssh_arguments(&address, port, &username)?;
+        args.insert(0, "-o".into());
+        args.insert(1, "BatchMode=yes".into());
+        args.insert(2, "-o".into());
+        args.insert(3, "ConnectTimeout=5".into());
+        args.insert(4, "-o".into());
+        args.insert(5, "StrictHostKeyChecking=accept-new".into());
+        args.push(trimmed.to_string());
+        let mut cmd = std::process::Command::new(exe);
+        cmd.args(&args);
+        jobs::start(cmd)
+    }
+    #[cfg(not(windows))] {
+        let _ = (trimmed, port, address, username);
+        Err("SSH terminal execution is only supported on Windows".into())
+    }
+}
+
+/// Runs a local terminal command in a project directory or default path.
+#[tauri::command]
+fn run_terminal_command(command: String, args: Vec<String>, cwd: Option<String>) -> Result<String, String> {
+    let trimmed = command.trim();
+    if trimmed.is_empty() { return Err("Command cannot be empty".into()); }
+    let mut cmd = std::process::Command::new(trimmed);
+    cmd.args(&args);
+    if let Some(dir) = cwd {
+        if !dir.trim().is_empty() && std::path::Path::new(&dir).is_dir() {
+            cmd.current_dir(dir);
+        }
+    }
+    jobs::start(cmd)
 }
 #[tauri::command]
 fn delete_connection(app: tauri::AppHandle, id: i64) -> Result<(), String> {
@@ -752,7 +832,7 @@ fn main() {
             if settings::MINIMIZE_TO_TRAY.load(std::sync::atomic::Ordering::Relaxed) { api.prevent_close(); let _ = window.hide(); }
         }
     })
-    .invoke_handler(tauri::generate_handler![list_items,toggle_task,delete_item,restore_item,purge_item,save_item,scan_projects,list_projects,import_projects,projects::delete_project,projects::list_project_roots,projects::add_project_root,projects::update_project_root,projects::remove_project_root,projects::scan_project_root,projects::import_root_projects,projects::ignored_project_count,projects::clear_ignored_projects,projects::refresh_git_info,projects::git_recent_commits,projects::launch_workspace,scheduler::take_automation_offers,toggle_fullscreen,is_fullscreen,projects::set_project_harness,projects::list_workspace_profiles,projects::save_workspace_profile,projects::delete_workspace_profile,projects::run_workspace_profile,open_project_folder,backup_database,list_sessions,add_session,update_session,delete_session,configure_editor,editor_path,open_in_editor,list_connections,save_connection,delete_connection,open_web_connection,open_rdp_connection,task_activity,vault_list,vault_add,vault_reveal,vault_delete,vault_update_metadata,vault_replace_secret,vault_copy_secret,vault_reconcile,restore_database,cancel_command,cancel_scan,save_goal,toggle_pin,settings::get_settings,settings::update_setting,settings::app_info,settings::notify_user,settings::send_test_notification,settings::check_due_notifications,set_command_favorite,check_connection,projects::create_project,projects::update_project,projects::set_project_flag,projects::project_sessions,projects::start_project_session,projects::end_project_session,projects::continue_info,projects::project_activity,projects::list_tools,projects::set_tool_path,projects::launch_project_tool,projects::link_connection_project,projects::link_vault_project,set_item_flag,duplicate_item,convert_note_to_task,set_task_status,set_subtasks,list_categories,create_category,rename_category,delete_category,open_external_url,get_setting,set_setting,detect_tools,open_ssh_connection,open_anydesk_connection,list_commands,save_command,delete_command,run_command,command_status,dismiss_command,list_automations,save_automation,delete_automation,run_automation_step,integration_warnings,exit_app])
+    .invoke_handler(tauri::generate_handler![list_items,toggle_task,delete_item,restore_item,purge_item,save_item,scan_projects,list_projects,import_projects,projects::delete_project,projects::list_project_roots,projects::add_project_root,projects::update_project_root,projects::remove_project_root,projects::scan_project_root,projects::import_root_projects,projects::ignored_project_count,projects::clear_ignored_projects,projects::refresh_git_info,projects::git_recent_commits,projects::launch_workspace,scheduler::take_automation_offers,toggle_fullscreen,is_fullscreen,projects::set_project_harness,projects::list_workspace_profiles,projects::save_workspace_profile,projects::delete_workspace_profile,projects::run_workspace_profile,open_project_folder,backup_database,list_sessions,add_session,update_session,delete_session,configure_editor,editor_path,open_in_editor,list_connections,save_connection,delete_connection,open_web_connection,open_rdp_connection,task_activity,vault_list,vault_add,vault_reveal,vault_delete,vault_update_metadata,vault_replace_secret,vault_copy_secret,vault_reconcile,restore_database,cancel_command,cancel_scan,save_goal,toggle_pin,settings::get_settings,settings::update_setting,settings::app_info,settings::notify_user,settings::send_test_notification,settings::check_due_notifications,set_command_favorite,check_connection,projects::create_project,projects::update_project,projects::set_project_flag,projects::project_sessions,projects::start_project_session,projects::end_project_session,projects::continue_info,projects::project_activity,projects::list_tools,projects::set_tool_path,projects::launch_project_tool,projects::link_connection_project,projects::link_vault_project,set_item_flag,duplicate_item,convert_note_to_task,set_task_status,set_subtasks,list_categories,create_category,rename_category,delete_category,open_external_url,get_setting,set_setting,detect_tools,open_ssh_connection,open_anydesk_connection,list_commands,save_command,delete_command,run_command,command_status,dismiss_command,list_automations,save_automation,delete_automation,run_automation_step,integration_warnings,exit_app,set_task_due_date,check_port,run_ssh_command,run_terminal_command])
     .run(tauri::generate_context!()).expect("error running application");
 }
 

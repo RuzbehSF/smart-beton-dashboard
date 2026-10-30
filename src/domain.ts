@@ -35,7 +35,7 @@ export function filterNotes(notes: Item[], category: string, tag: string, projec
 }
 
 export const STATUSES: [string, string][] = [['inbox', 'Inbox'], ['todo', 'To do'], ['in_progress', 'In progress'], ['blocked', 'Blocked'], ['done', 'Done']];
-export type TaskView = 'all'|'today'|'upcoming'|'overdue'|'progress'|'completed'|'project'|'board';
+export type TaskView = 'all'|'today'|'upcoming'|'overdue'|'progress'|'completed'|'project'|'board'|'calendar';
 export type Subtask = {title:string; done:boolean};
 
 /** Narrows live tasks to one saved view; board and by-project views show every task. */

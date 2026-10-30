@@ -468,6 +468,7 @@ pub fn restore_database_from_file(
 }
 
 #[derive(Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct NonSecretExport {
     pub format: String,
     pub schema_version: i64,

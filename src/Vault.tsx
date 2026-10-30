@@ -130,7 +130,7 @@ export function Vault(props:Props) {
           </div>
         </article>;
       })}
-      {!visible.length && <div className="collection-empty"><p>{items.length ? 'No credentials match these filters.' : 'No credentials yet. Add one, or create a secure note.'}</p>{items.length ? <button className="link" onClick={() => {setQuery(''); setKindFilter('all'); setProjectFilter('all'); setFavoritesOnly(false);}}>Clear filters</button> : <button className="link" onClick={() => openAdd()}>Add credential</button>}</div>}
+      {!visible.length && <div className="collection-empty"><p>{items.length ? 'No credentials match these filters.' : 'No credentials yet. Add one, or create a secure note.'}</p>{items.length ? <button className="link" onClick={() => {setQuery(''); setKindFilter('all'); setProjectFilter('all'); setFavoritesOnly(false);}}>Clear filters</button> : <button className="link" onClick={() => openAdd()}>Create credential</button>}</div>}
     </>}
 
     {mode && !locked && createPortal(<div className="overlay"><form className="dialog vault-dialog" role="dialog" aria-modal="true" aria-label="Credential" onSubmit={submit} onKeyDown={e => { if (e.key === 'Escape') close(); }}>

@@ -64,6 +64,7 @@ function previewInvoke(command: string, a: Row): unknown {
     case 'save_goal': create('task', a.title, {is_goal: true, due_date: a.dueDate ?? null}); return undefined;
     case 'toggle_task': { const x = find(a.id); x.done = !x.done; x.status = x.done ? 'done' : 'todo'; if (x.done) store.events.push({kind: 'completed', at: new Date().toISOString()}); return undefined; }
     case 'set_task_status': { const x = find(a.id), was = x.done; x.status = a.status; x.done = a.status === 'done'; if (x.done && !was) store.events.push({kind: 'completed', at: new Date().toISOString()}); return undefined; }
+    case 'set_task_due_date': { const x = find(a.id); x.due_date = a.dueDate ?? null; return undefined; }
     case 'set_subtasks': find(a.id).subtasks_json = JSON.stringify(a.subtasks); return undefined;
     case 'delete_item': find(a.id).deleted = true; return undefined;
     case 'restore_item': find(a.id).deleted = false; return undefined;
@@ -88,6 +89,9 @@ function previewInvoke(command: string, a: Row): unknown {
     case 'list_project_roots': case 'list_workspace_profiles': case 'git_recent_commits': return [];
     // Test seam for the browser preview only: JSON in localStorage key "previewProjects" shows the layout with many projects.
     case 'list_projects': try { const saved = JSON.parse(localStorage.getItem('previewProjects') ?? '[]'); return Array.isArray(saved) ? saved : []; } catch { return []; }
+    case 'check_connection': return { reachable: true, message: 'Server accepted TCP connection in 28ms', latency_ms: 28 };
+    case 'check_port': return { reachable: true, message: `Port ${a.port} on ${a.host} is OPEN (24ms)`, latency_ms: 24 };
+    case 'run_ssh_command': case 'run_terminal_command': return 'mock-job-' + Math.random().toString(36).slice(2, 8);
     case 'list_connections': case 'list_commands': case 'list_automations': case 'vault_list': case 'list_sessions':
     case 'project_sessions': case 'project_activity': case 'list_tools': case 'detect_tools': case 'integration_warnings': return [];
     default: throw new Error(NEEDS_DESKTOP);

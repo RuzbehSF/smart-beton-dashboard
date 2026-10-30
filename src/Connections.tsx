@@ -1,6 +1,8 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {invoke} from './native';
+import {TerminalModal} from './TerminalModal';
+import {PortCheckerModal} from './PortCheckerModal';
 
 type Project = {id:number; name:string};
 type Connection = {id:number|null; name:string; kind:string; address:string; port:number|null; username:string; project_id:number|null; environment:string; description:string; website_url:string; credential_id:number|null; project_ids:number[]};
@@ -23,26 +25,198 @@ function instructions(c:Connection): string {
 }
 
 export function Connections({projects}: {projects:Project[]}) {
-  const [items, setItems] = useState<Connection[]>([]), [form, setForm] = useState<Connection|null>(null), [error, setError] = useState(''), [credentials, setCredentials] = useState<Credential[]>([]), [checks, setChecks] = useState<Record<number, string>>({}), [open, setOpen] = useState<number|null>(null), [notice, setNotice] = useState('');
-  const [query, setQuery] = useState(''), [projectFilter, setProjectFilter] = useState('all'), [environmentFilter, setEnvironmentFilter] = useState('all'), [kindFilter, setKindFilter] = useState('all');
-  async function refresh() { try { const list = await invoke<unknown>('list_connections'); setItems(Array.isArray(list) ? (list as Connection[]).map(normalize) : []); setError(''); } catch (e) { setError(String(e)); } }
+  const [items, setItems] = useState<Connection[]>([]);
+  const [form, setForm] = useState<Connection|null>(null);
+  const [error, setError] = useState('');
+  const [credentials, setCredentials] = useState<Credential[]>([]);
+  const [checks, setChecks] = useState<Record<number, string>>({});
+  const [open, setOpen] = useState<number|null>(null);
+  const [notice, setNotice] = useState('');
+  const [query, setQuery] = useState('');
+  const [projectFilter, setProjectFilter] = useState('all');
+  const [environmentFilter, setEnvironmentFilter] = useState('all');
+  const [kindFilter, setKindFilter] = useState('all');
+
+  // Heartbeat & Latency State
+  const [heartbeatActive, setHeartbeatActive] = useState(false);
+  const [latencies, setLatencies] = useState<Record<number, {latency_ms?: number; reachable: boolean; lastPing: string}>>({});
+  const prevStatus = useRef<Record<number, boolean>>({});
+
+  // Modals
+  const [terminalConnection, setTerminalConnection] = useState<Connection|null>(null);
+  const [portCheckerItem, setPortCheckerItem] = useState<{address: string; name?: string}|null>(null);
+
+  async function refresh() {
+    try {
+      const list = await invoke<unknown>('list_connections');
+      setItems(Array.isArray(list) ? (list as Connection[]).map(normalize) : []);
+      setError('');
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
   useEffect(() => {
     refresh();
-    (async () => { try { const list = await invoke<unknown>('vault_list'); if (Array.isArray(list)) setCredentials((list as Credential[]).map(x => ({id: x.id, name: x.name}))); } catch { /* the vault is optional here */ } })();
+    (async () => {
+      try {
+        const list = await invoke<unknown>('vault_list');
+        if (Array.isArray(list)) setCredentials((list as Credential[]).map(x => ({id: x.id, name: x.name})));
+      } catch {
+        /* the vault is optional here */
+      }
+    })();
   }, []);
-  async function submit(e:React.FormEvent) { e.preventDefault(); if (!form) return; try { await invoke('save_connection', {item: {...form, project_id: form.project_ids[0] ?? null}}); setForm(null); await refresh(); } catch (err) { setError(String(err)); } }
+
+  // Periodic Heartbeat Monitor
+  useEffect(() => {
+    if (!heartbeatActive) return;
+
+    const pingAll = async () => {
+      const testable = items.filter(x => x.kind !== 'anydesk' && x.id);
+      for (const item of testable) {
+        try {
+          const res = await invoke<{reachable:boolean; message:string; latency_ms?:number}>('check_connection', {id: item.id});
+          const wasReachable = prevStatus.current[item.id!];
+          if (wasReachable === true && !res.reachable) {
+            // Trigger server down alert
+            invoke('notify_user', {
+              kind: 'servers',
+              title: 'Server Down Alert',
+              body: `${item.name} (${item.address}) is unreachable!`,
+            }).catch(() => {});
+          }
+          prevStatus.current[item.id!] = res.reachable;
+          setLatencies(prev => ({
+            ...prev,
+            [item.id!]: {
+              reachable: res.reachable,
+              latency_ms: res.latency_ms,
+              lastPing: new Date().toLocaleTimeString(),
+            },
+          }));
+        } catch {
+          /* skip individual failures */
+        }
+      }
+    };
+
+    pingAll();
+    const interval = window.setInterval(pingAll, 25000);
+    return () => window.clearInterval(interval);
+  }, [heartbeatActive, items]);
+
+  async function pingSingle(item: Connection) {
+    if (!item.id || item.kind === 'anydesk') return;
+    try {
+      const res = await invoke<{reachable:boolean; message:string; latency_ms?:number}>('check_connection', {id: item.id});
+      setLatencies(prev => ({
+        ...prev,
+        [item.id!]: {
+          reachable: res.reachable,
+          latency_ms: res.latency_ms,
+          lastPing: new Date().toLocaleTimeString(),
+        },
+      }));
+      setChecks(prev => ({...prev, [item.id!]: res.message}));
+      setError('');
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  async function submit(e:React.FormEvent) {
+    e.preventDefault();
+    if (!form) return;
+    try {
+      await invoke('save_connection', {item: {...form, project_id: form.project_ids[0] ?? null}});
+      setForm(null);
+      await refresh();
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
   const risky = (item:Connection) => item.environment === 'production' ? 'This is a PRODUCTION connection.\n' : '';
   const where = (item:Connection) => item.address + (item.port ? ' (port ' + item.port + ')' : '');
-  async function openWeb(item:Connection) { if (!window.confirm(risky(item) + 'Open this web connection in your browser?\n' + where(item))) return; try { await invoke('open_web_connection', {id: item.id, confirmedAddress: item.address, confirmedPort: item.port}); setError(''); } catch (e) { setError(String(e)); } }
-  async function openRdp(item:Connection) { if (!window.confirm(risky(item) + 'Open Remote Desktop to this host? No password or username will be supplied.\n' + where(item))) return; try { await invoke('open_rdp_connection', {id: item.id, confirmedAddress: item.address, confirmedPort: item.port}); setError(''); } catch (e) { setError(String(e)); } }
-  async function openSsh(item:Connection) { if (!window.confirm(risky(item) + 'Open an SSH session? Host key verification stays enabled and no password is supplied.\n' + (item.username ? item.username + '@' : '') + where(item))) return; try { await invoke('open_ssh_connection', {id: item.id, confirmedAddress: item.address, confirmedPort: item.port}); setError(''); } catch (e) { setError(String(e)); } }
-  async function openAnyDesk(item:Connection) { if (!window.confirm(risky(item) + 'Open AnyDesk for this ID? No password will be supplied.\n' + item.address)) return; try { await invoke('open_anydesk_connection', {id: item.id, confirmedAddress: item.address}); setError(''); } catch (e) { setError(String(e)); } }
+
+  async function openWeb(item:Connection) {
+    if (!window.confirm(risky(item) + 'Open this web connection in your browser?\n' + where(item))) return;
+    try {
+      await invoke('open_web_connection', {id: item.id, confirmedAddress: item.address, confirmedPort: item.port});
+      setError('');
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  async function openRdp(item:Connection) {
+    if (!window.confirm(risky(item) + 'Open Remote Desktop to this host? No password or username will be supplied.\n' + where(item))) return;
+    try {
+      await invoke('open_rdp_connection', {id: item.id, confirmedAddress: item.address, confirmedPort: item.port});
+      setError('');
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  async function openSsh(item:Connection) {
+    if (!window.confirm(risky(item) + 'Open an SSH session? Host key verification stays enabled and no password is supplied.\n' + (item.username ? item.username + '@' : '') + where(item))) return;
+    try {
+      await invoke('open_ssh_connection', {id: item.id, confirmedAddress: item.address, confirmedPort: item.port});
+      setError('');
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  async function openAnyDesk(item:Connection) {
+    if (!window.confirm(risky(item) + 'Open AnyDesk for this ID? No password will be supplied.\n' + item.address)) return;
+    try {
+      await invoke('open_anydesk_connection', {id: item.id, confirmedAddress: item.address});
+      setError('');
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
   async function check(item:Connection) {
     if (!window.confirm(risky(item) + `Test whether ${where(item)} accepts a TCP connection? No data is sent.`)) return;
-    try { const result = await invoke<{reachable:boolean; message:string}>('check_connection', {id: item.id}); setChecks({...checks, [item.id!]: (result.reachable ? 'Reachable: ' : 'Not reachable: ') + result.message}); setError(''); } catch (e) { setError(String(e)); }
+    try {
+      const result = await invoke<{reachable:boolean; message:string; latency_ms?:number}>('check_connection', {id: item.id});
+      setChecks({...checks, [item.id!]: (result.reachable ? 'Reachable: ' : 'Not reachable: ') + result.message});
+      setLatencies(prev => ({
+        ...prev,
+        [item.id!]: {
+          reachable: result.reachable,
+          latency_ms: result.latency_ms,
+          lastPing: new Date().toLocaleTimeString(),
+        },
+      }));
+      setError('');
+    } catch (e) {
+      setError(String(e));
+    }
   }
-  async function copy(text:string, what:string) { try { await navigator.clipboard.writeText(text); setNotice(`${what} copied.`); } catch { setError('Could not copy to the clipboard.'); } }
-  async function remove(id:number) { if (!window.confirm('Delete this connection entry? Nothing on the server is changed.')) return; try { await invoke('delete_connection', {id}); await refresh(); } catch (e) { setError(String(e)); } }
+
+  async function copy(text:string, what:string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setNotice(`${what} copied.`);
+    } catch {
+      setError('Could not copy to the clipboard.');
+    }
+  }
+
+  async function remove(id:number) {
+    if (!window.confirm('Delete this connection entry? Nothing on the server is changed.')) return;
+    try {
+      await invoke('delete_connection', {id});
+      await refresh();
+    } catch (e) {
+      setError(String(e));
+    }
+  }
 
   const needle = query.trim().toLocaleLowerCase();
   const list = items.filter(x => (projectFilter === 'all' || x.project_ids.includes(Number(projectFilter))) && (environmentFilter === 'all' || x.environment === environmentFilter) && (kindFilter === 'all' || x.kind === kindFilter)
@@ -51,7 +225,28 @@ export function Connections({projects}: {projects:Project[]}) {
   const credentialName = (id:number|null) => credentials.find(c => c.id === id)?.name;
 
   return <section className="card collection connections-page">
-    <div className="row"><h2>Server</h2><button onClick={() => {setError(''); setForm(blank());}}>＋ Add</button></div>
+    <div className="row">
+      <h2>Server</h2>
+      <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+        <button
+          type="button"
+          className={`heartbeat-toggle-btn ${heartbeatActive ? 'active' : ''}`}
+          onClick={() => setHeartbeatActive(!heartbeatActive)}
+          title="Toggle automatic periodic ping & status monitoring"
+        >
+          <span className={`radar-beacon ${heartbeatActive ? 'pulsing' : ''}`} />
+          {heartbeatActive ? 'Heartbeat: ON' : 'Live Heartbeat'}
+        </button>
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => setPortCheckerItem({address: '127.0.0.1', name: 'Custom Target'})}
+        >
+          🔍 Port Tester
+        </button>
+        <button onClick={() => {setError(''); setForm(blank());}}>＋ Add</button>
+      </div>
+    </div>
     <p className="muted">Metadata only. Do not enter passwords, tokens, or credential-bearing URLs; link a Secure Vault entry instead. Web, SSH, Remote Desktop and AnyDesk entries open after confirmation, and nothing connects on its own.</p>
     <div className="proj-toolbar">
       <input className="search" aria-label="Search connections" placeholder="Search name, address, user or notes" value={query} onChange={e => setQuery(e.target.value)}/>
@@ -63,31 +258,98 @@ export function Connections({projects}: {projects:Project[]}) {
     {error && !form && <p role="alert" className="error">{error}</p>}
     {notice && <p role="status">{notice}</p>}
     <p className="collection-count" aria-live="polite">{list.length} {list.length === 1 ? 'connection' : 'connections'}</p>
-    {list.map(item => <article className="item connection-item" key={item.id}>
-      <div className="vault-main">
-        <div className="row"><strong>{item.name}</strong></div>
-        <div className="chips"><span className="chip">{label(KINDS, item.kind)}</span><span className={`chip env-${item.environment}`}>{label(ENVIRONMENTS, item.environment)}</span>{item.project_ids.map(id => projectName(id) && <span className="chip" key={id}>{projectName(id)}</span>)}</div>
-        <p dir="ltr"><bdi>{item.kind.toUpperCase()} · {item.address}{item.port ? `:${item.port}` : ''}</bdi></p>
-        {(item.username || credentialName(item.credential_id)) && <p>{item.username}{item.username && credentialName(item.credential_id) ? ' · ' : ''}{credentialName(item.credential_id) && `Credential: ${credentialName(item.credential_id)}`}</p>}
-        {item.description && <p className="muted">{item.description}</p>}
-        {checks[item.id!] && <p role="status" className="muted">{checks[item.id!]}</p>}
-        {open === item.id && <pre className="instructions" dir="ltr">{instructions(item)}</pre>}
-      </div>
-      <div className="row actions">
-        {item.kind === 'ssh' && <button className="link" onClick={() => openSsh(item)}>Open SSH</button>}
-        {item.kind === 'rdp' && <button className="link" onClick={() => openRdp(item)}>Open Remote Desktop</button>}
-        {item.kind === 'anydesk' && <button className="link" onClick={() => openAnyDesk(item)}>Open AnyDesk</button>}
-        {item.kind === 'web' && <button className="link" onClick={() => openWeb(item)}>Open web panel</button>}
-        {!!item.website_url && item.kind !== 'web' && <button className="link" onClick={() => invoke('open_external_url', {url: item.website_url}).catch(e => setError(String(e)))}>Open website</button>}
-        {item.kind !== 'anydesk' && <button className="link" onClick={() => check(item)}>Test connection</button>}
-        <button className="link" onClick={() => copy(item.address + (item.port && item.kind !== 'web' ? ':' + item.port : ''), 'Address')}>Copy address</button>
-        {!!item.username && <button className="link" onClick={() => copy(item.username, 'Username')}>Copy username</button>}
-        <button className="link" aria-expanded={open === item.id} onClick={() => setOpen(open === item.id ? null : item.id)}>Instructions</button>
-        <button className="link" onClick={() => {setError(''); setForm(item);}}>Edit</button>
-        <button className="link" onClick={() => remove(item.id!)}>Delete</button>
-      </div>
-    </article>)}
-    {!list.length && <div className="collection-empty"><p>{items.length ? 'No connections match these filters.' : 'No connections saved yet.'}</p>{items.length ? <button className="link" onClick={() => {setQuery(''); setProjectFilter('all'); setEnvironmentFilter('all'); setKindFilter('all');}}>Clear filters</button> : <button className="link" onClick={() => {setError(''); setForm(blank());}}>Add connection</button>}</div>}
+    {list.map(item => {
+      const ping = latencies[item.id!];
+      return (
+        <article className="item connection-item" key={item.id}>
+          <div className="vault-main">
+            <div className="row" style={{alignItems: 'center', gap: '8px'}}>
+              <strong>{item.name}</strong>
+              {ping && (
+                ping.reachable ? (
+                  <span
+                    className={`latency-pill ${ping.latency_ms && ping.latency_ms < 150 ? 'healthy' : 'degraded'}`}
+                    title={`Roundtrip: ${ping.latency_ms ?? 0}ms · Last ping: ${ping.lastPing} · Click to re-test`}
+                    onClick={() => pingSingle(item)}
+                  >
+                    <span className="dot" />
+                    {ping.latency_ms ? `${ping.latency_ms}ms` : 'Online'}
+                  </span>
+                ) : (
+                  <span
+                    className="latency-pill down"
+                    title={`Server unreachable · Last check: ${ping.lastPing} · Click to retry`}
+                    onClick={() => pingSingle(item)}
+                  >
+                    <span className="dot" />
+                    Down
+                  </span>
+                )
+              )}
+            </div>
+            <div className="chips">
+              <span className="chip">{label(KINDS, item.kind)}</span>
+              <span className={`chip env-${item.environment}`}>{label(ENVIRONMENTS, item.environment)}</span>
+              {item.project_ids.map(id => projectName(id) && <span className="chip" key={id}>{projectName(id)}</span>)}
+            </div>
+            <p dir="ltr"><bdi>{item.kind.toUpperCase()} · {item.address}{item.port ? `:${item.port}` : ''}</bdi></p>
+            {(item.username || credentialName(item.credential_id)) && <p>{item.username}{item.username && credentialName(item.credential_id) ? ' · ' : ''}{credentialName(item.credential_id) && `Credential: ${credentialName(item.credential_id)}`}</p>}
+            {item.description && <p className="muted">{item.description}</p>}
+            {checks[item.id!] && <p role="status" className="muted">{checks[item.id!]}</p>}
+            {open === item.id && <pre className="instructions" dir="ltr">{instructions(item)}</pre>}
+          </div>
+          <div className="row actions">
+            {item.kind === 'ssh' && (
+              <button
+                type="button"
+                className="action-pill-btn terminal"
+                onClick={() => setTerminalConnection(item)}
+                title="Open lightweight in-app SSH shell"
+              >
+                ⚡ Quick Terminal
+              </button>
+            )}
+            <button
+              type="button"
+              className="action-pill-btn ports"
+              onClick={() => setPortCheckerItem({address: item.address, name: item.name})}
+              title="Test port reachability on this host"
+            >
+              Ports
+            </button>
+            {item.kind === 'ssh' && <button className="link" onClick={() => openSsh(item)}>Open SSH</button>}
+            {item.kind === 'rdp' && <button className="link" onClick={() => openRdp(item)}>Open Remote Desktop</button>}
+            {item.kind === 'anydesk' && <button className="link" onClick={() => openAnyDesk(item)}>Open AnyDesk</button>}
+            {item.kind === 'web' && <button className="link" onClick={() => openWeb(item)}>Open web panel</button>}
+            {!!item.website_url && item.kind !== 'web' && <button className="link" onClick={() => invoke('open_external_url', {url: item.website_url}).catch(e => setError(String(e)))}>Open website</button>}
+            {item.kind !== 'anydesk' && <button className="link" onClick={() => check(item)}>Test connection</button>}
+            <button className="link" onClick={() => copy(item.address + (item.port && item.kind !== 'web' ? ':' + item.port : ''), 'Address')}>Copy address</button>
+            {!!item.username && <button className="link" onClick={() => copy(item.username, 'Username')}>Copy username</button>}
+            <button className="link" aria-expanded={open === item.id} onClick={() => setOpen(open === item.id ? null : item.id)}>Instructions</button>
+            <button className="link" onClick={() => {setError(''); setForm(item);}}>Edit</button>
+            <button className="link" onClick={() => remove(item.id!)}>Delete</button>
+          </div>
+        </article>
+      );
+    })}
+    {!list.length && <div className="collection-empty"><p>{items.length ? 'No connections match these filters.' : 'No connections saved yet.'}</p>{items.length ? <button className="link" onClick={() => {setQuery(''); setProjectFilter('all'); setEnvironmentFilter('all'); setKindFilter('all');}}>Clear filters</button> : <button className="link" onClick={() => {setError(''); setForm(blank());}}>Create connection</button>}</div>}
+
+    {/* In-App Quick Web Terminal Modal */}
+    {terminalConnection && (
+      <TerminalModal
+        connection={terminalConnection}
+        onClose={() => setTerminalConnection(null)}
+      />
+    )}
+
+    {/* Port Reachability Modal */}
+    {portCheckerItem && (
+      <PortCheckerModal
+        initialHost={portCheckerItem.address}
+        serverName={portCheckerItem.name}
+        onClose={() => setPortCheckerItem(null)}
+      />
+    )}
 
     {form && createPortal(<div className="overlay"><form className="dialog" role="dialog" aria-modal="true" aria-label="Connection" onSubmit={submit} onKeyDown={e => { if (e.key === 'Escape') setForm(null); }}>
       <h2>{form.id ? 'Edit connection' : 'New connection'}</h2>

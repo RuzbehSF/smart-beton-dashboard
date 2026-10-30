@@ -1,9 +1,10 @@
 import React, {useEffect, useState} from 'react';
+import {motion, AnimatePresence} from 'motion/react';
 import {invoke} from './native';
 import {taskProgress, type Item} from './domain';
 import {WeeklyActivity, type ActivityDay} from './WeeklyActivity';
 
-type Project = {id:number; name:string; path:string; last_opened_at?:string|null};
+type Project = {id:number; name:string; path:string; last_opened_at?:string|null; [key:string]:any};
 export type DashboardProps = {
   items:Item[]; projects:Project[]; activity:ActivityDay[]; today:string; editorPath:string|null;
   onToggle:(id:number)=>void; onEdit:(item:Item)=>void; onTrash:(id:number)=>void; onPin:(id:number)=>void;
@@ -11,69 +12,366 @@ export type DashboardProps = {
   onOpenFolder:(id:number)=>void; onOpenEditor:(id:number)=>void; onPage:(index:number)=>void; onOpenProject:(id:number)=>void;
 };
 
+const bentoContainerVariants = {
+  hidden: {opacity: 0},
+  visible: {
+    opacity: 1,
+    transition: {staggerChildren: 0.04, delayChildren: 0.02},
+  },
+};
+
+const bentoCardVariants = {
+  hidden: {opacity: 0, y: 10},
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {duration: 0.24, ease: [0.16, 1, 0.3, 1] as const},
+  },
+};
+
 function Ring({percent}:{percent:number|null}) {
   const radius = 52, circumference = 2 * Math.PI * radius, value = percent ?? 0;
   return <svg className="ring-svg" viewBox="0 0 130 130" role="img" aria-label={percent === null ? 'No tasks yet' : `${percent}% of tasks completed`}>
-    <circle cx="65" cy="65" r={radius} fill="none" stroke="currentColor" strokeOpacity=".14" strokeWidth="10"/>
-    <circle cx="65" cy="65" r={radius} fill="none" stroke="currentColor" strokeWidth="10" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - value / 100)} transform="rotate(-90 65 65)"/>
+    <circle cx="65" cy="65" r={radius} fill="none" stroke="currentColor" strokeOpacity=".12" strokeWidth="10"/>
+    <motion.circle
+      cx="65"
+      cy="65"
+      r={radius}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="10"
+      strokeLinecap="round"
+      strokeDasharray={circumference}
+      initial={{strokeDashoffset: circumference}}
+      animate={{strokeDashoffset: circumference * (1 - value / 100)}}
+      transition={{duration: 0.6, ease: [0.16, 1, 0.3, 1] as const}}
+      transform="rotate(-90 65 65)"
+    />
     <text x="65" y="72" textAnchor="middle" className="ring-text">{percent === null ? '—' : `${percent}%`}</text>
   </svg>;
 }
 
 type ContinueInfo = {session_id:number; project_id:number; project_name:string; summary:string; next_action:string; started_at:string|null; ended_at:string|null; is_active:boolean};
+
 export function Dashboard(p:DashboardProps) {
-  const [cont, setCont] = useState<ContinueInfo|null>(null), [servers, setServers] = useState<number|null>(null), [goalTitle, setGoalTitle] = useState(''), [menu, setMenu] = useState<number|null>(null);
+  const [cont, setCont] = useState<ContinueInfo|null>(null);
+  const [servers, setServers] = useState<number|null>(null);
+  const [goalTitle, setGoalTitle] = useState('');
+  const [menu, setMenu] = useState<number|null>(null);
+  const [scratchNote, setScratchNote] = useState('');
+
   useEffect(() => {
     let alive = true;
-    (async () => { try { const list = await invoke<unknown>('list_connections'); if (alive && Array.isArray(list)) setServers(list.length); } catch { /* count stays hidden */ } })();
-    (async () => { try { const info = await invoke<ContinueInfo|null>('continue_info'); if (alive) setCont(info && typeof info === 'object' && typeof (info as ContinueInfo).project_id === 'number' ? info : null); } catch { /* optional card */ } })();
+    (async () => {
+      try {
+        const list = await invoke<unknown>('list_connections');
+        if (alive && Array.isArray(list)) setServers(list.length);
+      } catch {
+        /* count stays hidden */
+      }
+    })();
+    (async () => {
+      try {
+        const info = await invoke<ContinueInfo|null>('continue_info');
+        if (alive) setCont(info && typeof info === 'object' && typeof (info as ContinueInfo).project_id === 'number' ? info : null);
+      } catch {
+        /* optional card */
+      }
+    })();
     return () => { alive = false; };
   }, []);
+
   const live = p.items.filter(x => x.kind === 'task' && !x.deleted);
   const tasks = live.filter(x => !x.is_goal), goals = live.filter(x => x.is_goal);
   const notes = p.items.filter(x => x.kind === 'note' && !x.deleted);
   const done = tasks.filter(x => x.done).length;
   const doneGoals = goals.filter(x => x.done).length;
   const open = tasks.filter(x => !x.done).sort((a, b) => Number(!!b.is_pinned) - Number(!!a.is_pinned));
-  const recent = p.projects.filter(x => x.last_opened_at).sort((a, b) => (b.last_opened_at ?? '').localeCompare(a.last_opened_at ?? '')).slice(0, 3);
+  const recent = p.projects.filter(x => x.last_opened_at).sort((a, b) => (b.last_opened_at ?? '').localeCompare(a.last_opened_at ?? '')).slice(0, 6);
   const recentNotes = [...notes].sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? '')).slice(0, 3);
   const projectName = (id?:number|null) => p.projects.find(x => x.id === id)?.name;
-  async function submitGoal(e:React.FormEvent) { e.preventDefault(); const title = goalTitle.trim(); if (!title) return; await p.onAddGoal(title); setGoalTitle(''); }
-  return <div className="bento">
-    <section className="card b-overall"><div className="dashboard-heading"><div><h2>Overview</h2><p>A snapshot of your workspace</p></div><span className="dashboard-mark" aria-hidden="true">◫</span></div>
-      <div className="overall-numbers"><div><span className="big">{done}</span> <small>Tasks completed</small></div><div><span className="big">{p.projects.length}</span> <small>Projects</small></div></div>
-      <div className="metrics"><div><strong>{open.length}</strong>Open</div><div><strong>{done}</strong>Completed</div><div><strong>{notes.length}</strong>Notes</div><div><strong>{servers ?? '—'}</strong>Servers</div></div>
-    </section>
-    <div className="b-weekly"><WeeklyActivity days={p.activity}/></div>
-    <section className="card b-month"><h2>Task progress</h2><Ring percent={taskProgress(tasks)}/><p className="muted center">{tasks.length ? `${done} of ${tasks.length} tasks completed` : 'Completion appears once you add tasks.'}</p></section>
-    <section className="card goals b-goals"><div className="row"><h2>Goals</h2><span className="chip" aria-label="Goals completed">{doneGoals}/{goals.length}</span></div>
-      <div className="goal-list">{goals.map(x => <div className="goal-row" key={x.id}><label><input type="checkbox" checked={x.done} onChange={() => p.onToggle(x.id)}/><span className={x.done ? 'struck' : ''}>{x.title}</span></label><button className="link" aria-label={`Remove goal ${x.title}`} onClick={() => p.onTrash(x.id)}>✕</button></div>)}
-      {!goals.length && <div className="dashboard-placeholder"><span aria-hidden="true">◎</span><div><strong>Set an intention</strong><p>Your goals will appear here.</p></div></div>}</div>
-      <form className="goal-form" onSubmit={submitGoal}><input aria-label="New goal" placeholder="Add a goal" value={goalTitle} onChange={e => setGoalTitle(e.target.value)}/><button disabled={!goalTitle.trim()}>Add</button></form>
-    </section>
-    <section className="b-tasks"><div className="row"><h2>Open tasks <span className="dashboard-count">{open.length}</span></h2><button className="link" onClick={() => p.onPage(5)}>View all ›</button></div>
-      <div className="task-cards">
-        {open.slice(0, 3).map((x, i) => <article className={`task-card tilt-${i % 3}`} key={x.id}>
-          <div className="row"><label className="check-circle"><input type="checkbox" aria-label={`Complete ${x.title}`} checked={x.done} onChange={() => p.onToggle(x.id)}/></label>
-            <div className="menu-wrap"><button className="link dots" aria-label={`Menu for ${x.title}`} aria-expanded={menu === x.id} onClick={() => setMenu(menu === x.id ? null : x.id)}>⋯</button>
-              {menu === x.id && <div className="popover task-menu"><button onClick={() => {setMenu(null); p.onPin(x.id);}}>{x.is_pinned ? 'Unpin' : 'Pin'}</button><button onClick={() => {setMenu(null); p.onEdit(x);}}>Edit</button><button onClick={() => {setMenu(null); p.onTrash(x.id);}}>Move to trash</button></div>}</div></div>
-          <strong className="task-title">{x.is_pinned ? '★ ' : ''}{x.title}</strong>
-          <p className="muted">{[projectName(x.project_id), x.priority ?? 'normal'].filter(Boolean).join(' · ')}</p>
-          <p className={x.due_date && x.due_date < p.today ? 'due overdue' : 'due'}>{x.due_date ? <bdi dir="ltr">{x.due_date}</bdi> : 'No due date'}{x.due_date && x.due_date < p.today ? ' · overdue' : ''}</p>
-        </article>)}
-        {open.length ? <button className="task-card add-task" onClick={p.onAddTask}>＋ Add task</button> : <div className="dashboard-empty"><span className="dashboard-empty-icon" aria-hidden="true">✓</span><div><strong>Nothing on your list</strong><p>Give your next task a place to start.</p></div><button className="link" onClick={p.onAddTask}>＋ Add task</button></div>}
-      </div>
-    </section>
-    <section className="b-projects"><div className="row"><h2>Recent projects</h2><button className="link" onClick={() => p.onPage(1)}>All projects ›</button></div>
-      <div className="project-cards">
-        {recent.map(x => <article className="project-card" key={x.id}><button className="proj-name on-dark" onClick={() => p.onOpenProject(x.id)}>{x.name}</button><p dir="ltr" className="path">{x.path}</p><p className="muted">Last opened <bdi dir="ltr">{x.last_opened_at} UTC</bdi></p>
-          <div className="row actions"><button className="link" onClick={() => p.onOpenFolder(x.id)}>Open folder</button><button className="link" disabled={!p.editorPath} title={!p.editorPath ? 'Configure the editor in Settings first' : undefined} onClick={() => p.onOpenEditor(x.id)}>Open in VS Code</button></div></article>)}
-        {!recent.length && <div className="dashboard-empty empty-line"><span className="dashboard-empty-icon" aria-hidden="true">◇</span><div><strong>Your projects, close at hand</strong><p>{p.projects.length ? 'Open a project to see it here.' : 'Add a project to get started.'}</p></div><button className="link" onClick={() => p.onPage(1)}>{p.projects.length ? 'Browse projects' : 'Add a project'}</button></div>}
-      </div>
-    </section>
-    <div className={`b-side${cont ? ' with-continue' : ''}`}>
-      {cont && <section className="card b-continue"><div className="row"><div><h2>Continue where you left off</h2><p><strong>{cont.project_name}</strong>{cont.is_active ? ' · session in progress' : ''}</p><p className="muted">{cont.is_active ? <>Started <bdi dir="ltr">{cont.started_at} UTC</bdi></> : cont.summary || 'Session ended'}</p>{!cont.is_active && cont.next_action && <p><strong>Next:</strong> {cont.next_action}</p>}</div><button onClick={() => p.onOpenProject(cont.project_id)}>{cont.is_active ? 'Return to session' : 'Resume project'}</button></div></section>}
-    <section className="card b-notes"><div className="row"><h2>Recent notes</h2><button className="link" onClick={p.onAddNote}>＋ Add note</button></div>
-      {recentNotes.length ? <div className="dashboard-notes">{recentNotes.map(x => <button className="dashboard-note" key={x.id} onClick={() => p.onEdit(x)}><span className="dashboard-note-icon" aria-hidden="true">▤</span><span><strong>{x.title}</strong><small>{x.category || 'Note'}</small></span><span aria-hidden="true">›</span></button>)}</div> : <div className="dashboard-placeholder"><span aria-hidden="true">✎</span><div><strong>Capture an idea</strong><p>Your notes will appear here.</p></div></div>}</section></div>
-  </div>;
+  const cleanPath = (pth: string) => (pth ?? '').replace(/^\\\\\?\\/, '');
+
+  async function submitGoal(e:React.FormEvent) {
+    e.preventDefault();
+    const title = goalTitle.trim();
+    if (!title) return;
+    await p.onAddGoal(title);
+    setGoalTitle('');
+  }
+
+  async function submitScratch(e:React.FormEvent) {
+    e.preventDefault();
+    const text = scratchNote.trim();
+    if (!text) return;
+    try {
+      await invoke('save_item', {
+        kind: 'note',
+        title: text,
+        body: '',
+        category: 'Quick Note',
+        tags: 'scratchpad',
+        projectId: null,
+        priority: 'normal',
+        dueDate: null,
+      });
+      setScratchNote('');
+      p.onToggle(0);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return (
+    <motion.div
+      className="bento"
+      initial="hidden"
+      animate="visible"
+      variants={bentoContainerVariants}
+    >
+      {/* 1. Overview */}
+      <motion.section className="card b-overall" variants={bentoCardVariants}>
+        <div className="dashboard-heading">
+          <div>
+            <h2>Overview</h2>
+            <p>A snapshot of your workspace</p>
+          </div>
+          <span className="dashboard-mark" aria-hidden="true">◫</span>
+        </div>
+        <div className="overall-numbers">
+          <div>
+            <span className="big">{done}</span>
+            <small>Tasks completed</small>
+          </div>
+          <div>
+            <span className="big">{p.projects.length}</span>
+            <small>Projects</small>
+          </div>
+        </div>
+        <div className="metrics">
+          <div><strong>{open.length}</strong>Open</div>
+          <div><strong>{done}</strong>Completed</div>
+          <div><strong>{notes.length}</strong>Notes</div>
+          <div><strong>{servers ?? '—'}</strong>Servers</div>
+        </div>
+      </motion.section>
+
+      {/* 2. Weekly Activity Chart */}
+      <motion.div className="b-weekly" variants={bentoCardVariants}>
+        <WeeklyActivity days={p.activity}/>
+      </motion.div>
+
+      {/* 3. Task Progress Ring */}
+      <motion.section className="card b-month" variants={bentoCardVariants}>
+        <h2>Task progress</h2>
+        <Ring percent={taskProgress(tasks)}/>
+        <p className="muted center">
+          {tasks.length ? `${done} of ${tasks.length} tasks completed` : 'Completion appears once you add tasks.'}
+        </p>
+      </motion.section>
+
+      {/* 4. Goals */}
+      <motion.section className="card goals b-goals" variants={bentoCardVariants}>
+        <div className="row">
+          <h2>Goals</h2>
+          <span className="chip" aria-label="Goals completed">{doneGoals}/{goals.length}</span>
+        </div>
+        <div className="goal-list">
+          <AnimatePresence initial={false}>
+            {goals.map(x => (
+              <motion.div
+                className="goal-row"
+                key={x.id}
+                layout
+                initial={{opacity: 0, y: -4}}
+                animate={{opacity: 1, y: 0}}
+                exit={{opacity: 0, scale: 0.95}}
+                transition={{duration: 0.15}}
+              >
+                <label>
+                  <input type="checkbox" checked={x.done} onChange={() => p.onToggle(x.id)}/>
+                  <span className={x.done ? 'struck' : ''}>{x.title}</span>
+                </label>
+                <button className="link" aria-label={`Remove goal ${x.title}`} onClick={() => p.onTrash(x.id)}>✕</button>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          {!goals.length && (
+            <div className="dashboard-placeholder">
+              <span aria-hidden="true">◎</span>
+              <div>
+                <strong>Set an intention</strong>
+                <p>Your goals will appear here.</p>
+              </div>
+            </div>
+          )}
+        </div>
+        <form className="goal-form" onSubmit={submitGoal}>
+          <input aria-label="New goal" placeholder="Add a goal" value={goalTitle} onChange={e => setGoalTitle(e.target.value)}/>
+          <button disabled={!goalTitle.trim()}>Add</button>
+        </form>
+      </motion.section>
+
+      {/* 5. Open Tasks */}
+      <motion.section className="b-tasks" variants={bentoCardVariants}>
+        <div className="row">
+          <h2>Open tasks <span className="dashboard-count">{open.length}</span></h2>
+          <button className="link" onClick={() => p.onPage(5)}>View all ›</button>
+        </div>
+        <div className="task-cards">
+          <AnimatePresence initial={false}>
+            {open.slice(0, 3).map((x, i) => (
+              <motion.article
+                className={`task-card tilt-${i % 3}`}
+                key={x.id}
+                layout
+                initial={{opacity: 0, scale: 0.97}}
+                animate={{opacity: 1, scale: 1}}
+                exit={{opacity: 0, scale: 0.95}}
+                whileHover={{y: -2}}
+                transition={{duration: 0.16}}
+              >
+                <div className="row">
+                  <label className="check-circle">
+                    <input type="checkbox" aria-label={`Complete ${x.title}`} checked={x.done} onChange={() => p.onToggle(x.id)}/>
+                  </label>
+                  <div className="menu-wrap">
+                    <button className="link dots" aria-label={`Menu for ${x.title}`} aria-expanded={menu === x.id} onClick={() => setMenu(menu === x.id ? null : x.id)}>⋯</button>
+                    {menu === x.id && (
+                      <div className="popover task-menu">
+                        <button onClick={() => {setMenu(null); p.onPin(x.id);}}>{x.is_pinned ? 'Unpin' : 'Pin'}</button>
+                        <button onClick={() => {setMenu(null); p.onEdit(x);}}>Edit</button>
+                        <button onClick={() => {setMenu(null); p.onTrash(x.id);}}>Move to trash</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <strong className="task-title">{x.is_pinned ? '★ ' : ''}{x.title}</strong>
+                <p className="muted">{[projectName(x.project_id), x.priority ?? 'normal'].filter(Boolean).join(' · ')}</p>
+                <p className={x.due_date && x.due_date < p.today ? 'due overdue' : 'due'}>
+                  {x.due_date ? <bdi dir="ltr">{x.due_date}</bdi> : 'No due date'}
+                  {x.due_date && x.due_date < p.today ? ' · overdue' : ''}
+                </p>
+              </motion.article>
+            ))}
+          </AnimatePresence>
+          {open.length ? (
+            <motion.button className="task-card add-task" whileHover={{y: -2}} onClick={p.onAddTask}>
+              ＋ Add task
+            </motion.button>
+          ) : (
+            <div className="dashboard-empty">
+              <span className="dashboard-empty-icon" aria-hidden="true">✓</span>
+              <div>
+                <strong>Nothing on your list</strong>
+                <p>Give your next task a place to start.</p>
+              </div>
+              <button className="link" onClick={p.onAddTask}>＋ Add task</button>
+            </div>
+          )}
+        </div>
+      </motion.section>
+
+      {/* 6. Recent Projects */}
+      <motion.section className="b-projects" variants={bentoCardVariants}>
+        <div className="row">
+          <h2>Recent projects</h2>
+          <button className="link" onClick={() => p.onPage(1)}>All projects ›</button>
+        </div>
+        <div className="project-cards">
+          {recent.map(x => (
+            <motion.article
+              className="project-card"
+              key={x.id}
+              whileHover={{y: -2}}
+              transition={{duration: 0.15}}
+              title={cleanPath(x.path)}
+            >
+              <button className="proj-name on-dark" onClick={() => p.onOpenProject(x.id)}>
+                {x.name}
+              </button>
+              <div className="row actions">
+                <button className="link" onClick={() => p.onOpenFolder(x.id)}>Open folder</button>
+                <button className="link" disabled={!p.editorPath} title={!p.editorPath ? 'Configure the editor in Settings first' : undefined} onClick={() => p.onOpenEditor(x.id)}>
+                  Open in VS Code
+                </button>
+              </div>
+            </motion.article>
+          ))}
+          {!recent.length && (
+            <div className="dashboard-empty empty-line">
+              <span className="dashboard-empty-icon" aria-hidden="true">◇</span>
+              <div>
+                <strong>Your projects, close at hand</strong>
+                <p>{p.projects.length ? 'Open a project to see it here.' : 'Add a project to get started.'}</p>
+              </div>
+              <button className="link" onClick={() => p.onPage(1)}>
+                {p.projects.length ? 'Browse projects' : 'Add a project'}
+              </button>
+            </div>
+          )}
+        </div>
+      </motion.section>
+
+      {/* 7. Side Panels: Continue Session + Notes */}
+      <motion.div className={`b-side${cont ? ' with-continue' : ''}`} variants={bentoCardVariants}>
+        {cont && (
+          <section className="card b-continue">
+            <div className="row">
+              <div>
+                <h2>Continue where you left off</h2>
+                <p><strong>{cont.project_name}</strong>{cont.is_active ? ' · session in progress' : ''}</p>
+                <p className="muted">
+                  {cont.is_active ? <>Started <bdi dir="ltr">{cont.started_at} UTC</bdi></> : cont.summary || 'Session ended'}
+                </p>
+                {!cont.is_active && cont.next_action && <p><strong>Next:</strong> {cont.next_action}</p>}
+              </div>
+              <button onClick={() => p.onOpenProject(cont.project_id)}>
+                {cont.is_active ? 'Return to session' : 'Resume project'}
+              </button>
+            </div>
+          </section>
+        )}
+
+        <section className="card b-notes">
+          <div className="row">
+            <h2>Recent notes</h2>
+            <button className="link" onClick={p.onAddNote}>＋ Add note</button>
+          </div>
+          {recentNotes.length ? (
+            <div className="dashboard-notes">
+              {recentNotes.map(x => (
+                <button className="dashboard-note" key={x.id} onClick={() => p.onEdit(x)}>
+                  <span className="dashboard-note-icon" aria-hidden="true">▤</span>
+                  <span>
+                    <strong>{x.title}</strong>
+                    <small>{x.category || 'Note'}</small>
+                  </span>
+                  <span aria-hidden="true">›</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="dashboard-placeholder">
+              <span aria-hidden="true">✎</span>
+              <div>
+                <strong>Capture an idea</strong>
+                <p>Your notes will appear here.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Clean Monochrome Quick Scratchpad */}
+          <form className="dashboard-quick-scratch" onSubmit={submitScratch}>
+            <input
+              placeholder="Quick scratch note... (press Enter)"
+              value={scratchNote}
+              onChange={e => setScratchNote(e.target.value)}
+            />
+            <button type="submit" disabled={!scratchNote.trim()}>Jot</button>
+          </form>
+        </section>
+      </motion.div>
+    </motion.div>
+  );
 }
